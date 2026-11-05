@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getClientBySlug, getAnswers, getRecordings, getBriefs, listRounds } from "@/lib/db";
-import { actionGenerateBrief, actionRetranscribe, actionSaveBriefEdit, actionSetStatus, actionNewRound, actionRoundStatus, actionConfirmShoot } from "../actions";
+import { actionGenerateBrief, actionRetranscribe, actionSaveBriefEdit, actionSetStatus, actionNewRound, actionRoundStatus, actionConfirmShoot, actionResetRound } from "../actions";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -68,6 +68,7 @@ export default async function ClientDetail({ params, searchParams }: { params: P
             {round.status === "draft" ? <form action={actionRoundStatus.bind(null, round.id, client.slug)}><input type="hidden" name="status" value="live" /><button className="btn small" type="submit">Go live on his page</button></form> : null}
             {round.status === "live" ? <form action={actionRoundStatus.bind(null, round.id, client.slug)}><input type="hidden" name="status" value="done" /><button className="btn small ghost" type="submit">Mark done</button></form> : null}
             {round.status === "done" ? <form action={actionRoundStatus.bind(null, round.id, client.slug)}><input type="hidden" name="status" value="live" /><button className="btn small ghost" type="submit">Reopen</button></form> : null}
+            <form action={actionResetRound.bind(null, round.id, client.slug)} style={{ marginLeft: "auto" }}><button className="btn link" type="submit" style={{ color: "var(--red)", borderColor: "var(--red)" }}>Reset this round (wipes answers and recordings)</button></form>
           </div>
         ) : <p style={{ marginTop: 12 }}>No rounds yet. Press New round.</p>}
       </div>

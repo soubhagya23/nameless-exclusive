@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { hqUser } from "@/lib/supabase-server";
-import { supabaseAdmin } from "@/lib/supabase-admin";
+import { supabaseAdmin, RECORDINGS_BUCKET } from "@/lib/supabase-admin";
 import { generateBrief } from "@/lib/brief";
 import { transcribeRecording } from "@/lib/transcribe";
 import { getRound, listRounds } from "@/lib/db";
@@ -127,6 +127,21 @@ export async function actionDeleteRound(roundId: string, slug: string) {
   await supabaseAdmin().from("rounds").delete().eq("id", roundId);
   revalidatePath(`/hq/${slug}`);
   redirect(`/hq/${slug}`);
+}
+
+export async function actionResetRound(roundId: string, slug: string) {
+  await guard();
+  const round = await getRound(roundId);
+  if (!round) throw new Error("round not found");
+  const sb = supabaseAdmin();
+  const { data: recs } = await sb.from("recordings").select("storage_path").eq("round_id", roundId);
+  const paths = (recs || []).map((r) => r.storage_path).filter((p) => p && p !== "pending");
+  if (paths.length) await sb.storage.from(RECORDINGS_BUCKET).remove(paths);
+  await sb.from("card_answers").delete().eq("round_id", roundId);
+  await sb.from("recordings").delete().eq("round_id", roundId);
+  await sb.from("rounds").update({ shoot_date: null, shoot_note: null }).eq("id", roundId);
+  await sb.from("clients").update({ shoot_days: [] }).eq("id", round.client_id);
+  revalidatePath(`/hq/${slug}`);
 }
 
 /* ---------- briefs, transcripts ---------- */
