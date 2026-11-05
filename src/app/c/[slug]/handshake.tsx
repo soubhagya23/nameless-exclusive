@@ -243,7 +243,7 @@ export default function Handshake({ client, initialAnswers, initialRecordings, s
               </div>
               {fixOpen ? (
                 <div className="fix">
-                  <span className="label" style={{ color: "var(--ink)" }}>What is off? Say it or type one line.</span>
+                  <span className="label" style={{ color: "var(--ink)" }}>What is off? Say it in any language, or type one line.</span>
                   <div className="row">
                     <button className={`btn recbtn ${recording === "fix" ? "on" : ""}`} type="button" onClick={() => (recording === "fix" ? stopRecording() : startRecording("fix"))} disabled={uploading}>
                       {recording === "fix" ? "Stop" : fixRecId ? "Say it again" : "Say it"}
@@ -273,7 +273,7 @@ export default function Handshake({ client, initialAnswers, initialRecordings, s
 
       <section className="band dark" id="drive">
         <div className="in">
-          <div className="head"><span className="label">( 02 )</span><div><h2>Drive and <span className="acc">talk.</span></h2><p style={{ color: "var(--dim)" }}>Next time you are in the car, press Start the drive, put the phone in the cradle, and talk. We show you one thing to talk about at a time and move on by ourselves. One recording, no stopping and starting. About ten minutes.</p></div></div>
+          <div className="head"><span className="label">( 02 )</span><div><h2>Drive and <span className="acc">talk.</span></h2><p style={{ color: "var(--dim)" }}>Next time you are in the car, press Start the drive, put the phone in the cradle, and talk. We show you one thing to talk about at a time and move on by ourselves. One recording, no stopping and starting. About ten minutes. Hindi, Punjabi, English or a mix, whatever comes out.</p></div></div>
           <div className="drive">
             <div className="prompts">{prompts.map((p, k) => <span key={k}><b>{k + 1}. </b>{p.q}</span>)}</div>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
