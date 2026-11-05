@@ -78,3 +78,14 @@ export type Brief = {
   edited_content: string | null;
   created_at: string;
 };
+
+export type Ask = {
+  id: string;
+  client_id: string;
+  question: string;
+  status: "open" | "answered";
+  answer_text: string;
+  recording_id: string | null;
+  created_at: string;
+  answered_at: string | null;
+};

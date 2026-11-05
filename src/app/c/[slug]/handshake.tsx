@@ -7,10 +7,12 @@ import type { RoundConfig } from "@/lib/types";
 type Verdict = "yes" | "no" | "skip";
 type Answer = { card_id: string; verdict: Verdict; note: string; recording_id: string | null };
 type Rec = { id: string; kind: "fix" | "drive" | "answer"; card_id: string | null; duration_secs: number };
+type AskItem = { id: string; question: string; status: "open" | "answered"; answer_text: string; recording_id: string | null };
 
 type Props = {
   client: { slug: string; name: string; first_name: string; portrait_url: string | null; wa_number: string | null; shoot_days: string[]; akshayName: string };
-  round: { id: string; number: number; title: string; config: RoundConfig; shoot_date: string | null; shoot_note: string | null };
+  round: { id: string; number: number; title: string; config: RoundConfig; shoot_date: string | null; shoot_note: string | null; live: boolean };
+  initialAsks: AskItem[];
   initialAnswers: Answer[];
   initialRecordings: Rec[];
   supabaseUrl: string;
@@ -30,7 +32,7 @@ function pickMime() {
   return "";
 }
 
-export default function Handshake({ client, round, initialAnswers, initialRecordings, supabaseUrl, supabaseAnon }: Props) {
+export default function Handshake({ client, round, initialAsks, initialAnswers, initialRecordings, supabaseUrl, supabaseAnon }: Props) {
   const cfg = round.config;
   const cards = cfg.cards;
   const prompts = cfg.prompts;
@@ -47,7 +49,7 @@ export default function Handshake({ client, round, initialAnswers, initialRecord
   const [fixText, setFixText] = useState("");
   const [fixRecId, setFixRecId] = useState<string | null>(null);
   const [fixUrl, setFixUrl] = useState<string | null>(null);
-  const [recording, setRecording] = useState<"" | "fix" | "drive">("");
+  const [recording, setRecording] = useState<"" | "fix" | "drive" | "ask">("");
   const [recSecs, setRecSecs] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [days, setDays] = useState<string[]>(client.shoot_days || []);
@@ -55,6 +57,10 @@ export default function Handshake({ client, round, initialAnswers, initialRecord
   const [liveIdx, setLiveIdx] = useState(0);
   const [liveProg, setLiveProg] = useState(0);
   const [driveUrl, setDriveUrl] = useState<string | null>(null);
+  const [asks, setAsks] = useState<AskItem[]>(initialAsks);
+  const [askText, setAskText] = useState<Record<string, string>>({});
+  const [askRec, setAskRec] = useState<Record<string, { id: string; url: string }>>({});
+  const [askActive, setAskActive] = useState<string | null>(null);
 
   const recorder = useRef<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
@@ -82,7 +88,10 @@ export default function Handshake({ client, round, initialAnswers, initialRecord
     return r.json();
   }
 
+  const who = client.akshayName;
+  const openAsks = asks.filter((a) => a.status === "open");
   function jobLine() {
+    if (openAsks.length) return openAsks.length === 1 ? `${who} has one question for you.` : `${who} has ${openAsks.length} questions for you.`;
     if (!allDone) return answered > 0 ? `Finish the cards. ${cards.length - answered} left.` : `Tap through ${cards.length} cards. About three minutes.`;
     if (prompts.length && !driveRec) return "Cards done. Ten minutes on your next drive.";
     if (round.shoot_date) return `Done. Shoot day: ${round.shoot_date}.`;
@@ -106,6 +115,18 @@ export default function Handshake({ client, round, initialAnswers, initialRecord
     try { await post("card", a); } catch { say("Could not save that one. Check your connection."); }
   }
 
+  async function sendAsk(askId: string) {
+    const text = (askText[askId] || "").trim();
+    const rec = askRec[askId];
+    if (!text && !rec) { say("Say it or type a line first."); return; }
+    try {
+      await post("ask", { askId, text, recordingId: rec ? rec.id : null });
+      setAsks((list) => list.map((a) => (a.id === askId ? { ...a, status: "answered", answer_text: text, recording_id: rec ? rec.id : null } : a)));
+      setAskActive(null);
+      say("Sent.");
+    } catch { say("Could not send. Check your connection."); }
+  }
+
   async function toggleDay(label: string) {
     const next = days.includes(label) ? days.filter((d) => d !== label) : [...days, label];
     setDays(next);
@@ -116,7 +137,7 @@ export default function Handshake({ client, round, initialAnswers, initialRecord
     return !!(navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === "function" && typeof MediaRecorder !== "undefined");
   }
 
-  async function upload(kind: "fix" | "drive", blob: Blob, secs: number, cardId: string | null): Promise<string | null> {
+  async function upload(kind: "fix" | "drive" | "answer", blob: Blob, secs: number, cardId: string | null): Promise<string | null> {
     setUploading(true);
     try {
       const mime = blob.type || "audio/webm";
@@ -136,7 +157,7 @@ export default function Handshake({ client, round, initialAnswers, initialRecord
     }
   }
 
-  async function startRecording(kind: "fix" | "drive") {
+  async function startRecording(kind: "fix" | "drive" | "ask", askId?: string) {
     if (!canRecord()) { say("No microphone in this browser. Use WhatsApp instead."); return; }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -157,6 +178,9 @@ export default function Handshake({ client, round, initialAnswers, initialRecord
           setFixUrl(url);
           const id = await upload("fix", blob, secs, card.id);
           if (id) { setFixRecId(id); say("Got it"); }
+        } else if (kind === "ask") {
+          const id = await upload("answer", blob, secs, askId || null);
+          if (id && askId) { setAskRec((m) => ({ ...m, [askId]: { id, url } })); say("Got it. Press Send when you are ready."); }
         } else {
           setDriveUrl(url);
           const id = await upload("drive", blob, secs, null);
@@ -213,7 +237,6 @@ export default function Handshake({ client, round, initialAnswers, initialRecord
 
   const wa = (text: string) => `https://wa.me/${client.wa_number || ""}?text=${encodeURIComponent(text)}`;
   const driveWa = wa(`Drive notes from ${client.first_name}. Sending them one by one:\n` + prompts.map((p, k) => `${k + 1}. ${p.q}`).join("\n"));
-  const who = client.akshayName;
 
   return (
     <div>
@@ -235,7 +258,7 @@ export default function Handshake({ client, round, initialAnswers, initialRecord
             <span className="label">Your one job this week</span>
             <b>{jobLine()}</b>
             {round.shoot_date ? <span style={{ color: "var(--dim)" }}>{round.shoot_note || "We message you the morning before with the run of day."}</span> : null}
-            {!allDone || (prompts.length && !driveRec) ? <div style={{ marginTop: 10 }}><a className="btn" href={allDone ? "#drive" : "#cards"}>{allDone ? "Go to the drive" : "Start"}</a></div> : null}
+            {openAsks.length ? <div style={{ marginTop: 10 }}><a className="btn" href="#asks">See the question{openAsks.length > 1 ? "s" : ""}</a></div> : !allDone || (prompts.length && !driveRec) ? <div style={{ marginTop: 10 }}><a className="btn" href={allDone ? "#drive" : "#cards"}>{allDone ? "Go to the drive" : "Start"}</a></div> : null}
           </div>
         </div>
       </header>
@@ -316,6 +339,40 @@ export default function Handshake({ client, round, initialAnswers, initialRecord
           ) : null}
         </div>
       </section> : null}
+
+      {asks.length ? (
+        <section className="band grey" id="asks">
+          <div className="in">
+            <div className="head"><span className="label">( 03 )</span><div><h2>From <span className="acc">{who}.</span></h2><p>Quick ones. Say it or type a line, then Send.</p></div></div>
+            <div style={{ display: "grid", gap: 12 }}>
+              {asks.map((a) => (
+                <div key={a.id} className="card" style={{ borderColor: a.status === "answered" ? "var(--line)" : "var(--ink)" }}>
+                  <div className="meta"><span className="label">{a.status === "answered" ? "Answered" : "Open"}</span></div>
+                  <p className="claim" style={{ fontSize: "clamp(22px, 3.6vw, 30px)" }}>{a.question}</p>
+                  {a.status === "answered" ? (
+                    <p className="why">{a.answer_text ? `“${a.answer_text}”` : "Voice note sent."}{a.recording_id && a.answer_text ? " Plus a voice note." : ""}</p>
+                  ) : (
+                    <div className="fix" style={{ marginTop: 18 }}>
+                      <div className="row">
+                        <button className={`btn recbtn ${recording === "ask" && askActive === a.id ? "on" : ""}`} type="button" disabled={uploading || (recording !== "" && !(recording === "ask" && askActive === a.id))} onClick={() => { if (recording === "ask" && askActive === a.id) { stopRecording(); } else { setAskActive(a.id); startRecording("ask", a.id); } }}>
+                          {recording === "ask" && askActive === a.id ? "Stop" : askRec[a.id] ? "Say it again" : "Say it"}
+                        </button>
+                        {recording === "ask" && askActive === a.id ? <span className="state">{fmt(recSecs)}</span> : null}
+                        {uploading && askActive === a.id ? <span className="state">Saving</span> : null}
+                      </div>
+                      {askRec[a.id] ? <div className="row"><audio controls preload="metadata" src={askRec[a.id].url} /></div> : null}
+                      <div className="row">
+                        <input type="text" value={askText[a.id] || ""} onChange={(e) => setAskText((m) => ({ ...m, [a.id]: e.target.value }))} placeholder="Or type a line" maxLength={1000} />
+                        <button className="btn" type="button" onClick={() => sendAsk(a.id)} disabled={uploading || recording !== ""}>Send</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section className="band" id="after">
         <div className="in">

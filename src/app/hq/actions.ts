@@ -144,6 +144,40 @@ export async function actionResetRound(roundId: string, slug: string) {
   revalidatePath(`/hq/${slug}`);
 }
 
+/* ---------- asks ---------- */
+
+export async function actionAsk(clientId: string, slug: string, formData: FormData) {
+  await guard();
+  const question = String(formData.get("question") || "").trim().slice(0, 500);
+  if (!question) return;
+  await supabaseAdmin().from("asks").insert({ client_id: clientId, question });
+  revalidatePath(`/hq/${slug}`);
+}
+
+export async function actionDeleteAsk(askId: string, slug: string) {
+  await guard();
+  await supabaseAdmin().from("asks").delete().eq("id", askId);
+  revalidatePath(`/hq/${slug}`);
+}
+
+/* ---------- reset ---------- */
+
+export async function actionResetClient(clientId: string, slug: string) {
+  await guard();
+  const sb = supabaseAdmin();
+  const { data: recs } = await sb.from("recordings").select("storage_path").eq("client_id", clientId);
+  const paths = (recs || []).map((r) => r.storage_path).filter((p) => p && p !== "pending");
+  if (paths.length) await sb.storage.from(RECORDINGS_BUCKET).remove(paths);
+  await sb.from("card_answers").delete().eq("client_id", clientId);
+  await sb.from("recordings").delete().eq("client_id", clientId);
+  await sb.from("asks").delete().eq("client_id", clientId);
+  await sb.from("briefs").delete().eq("client_id", clientId);
+  await sb.from("events").delete().eq("client_id", clientId);
+  await sb.from("rounds").update({ shoot_date: null, shoot_note: null }).eq("client_id", clientId);
+  await sb.from("clients").update({ shoot_days: [], status: "handshake" }).eq("id", clientId);
+  revalidatePath(`/hq/${slug}`); revalidatePath("/hq");
+}
+
 /* ---------- briefs, transcripts ---------- */
 
 export async function actionGenerateBrief(clientId: string, slug: string) {

@@ -5,7 +5,7 @@ Everything below is a one-time job. About twenty minutes. Do it in order.
 ## 1. Supabase (database, storage, HQ login)
 
 1. supabase.com → New project. Name `nameless`, region Sydney. Save the database password somewhere safe (you will not need it day to day).
-2. When it is ready: **SQL Editor → New query**. Open `supabase/schema.sql` from this repo, paste everything, **Run**. Then do the same with `supabase/migrations/002_rounds.sql`. Together they create the tables, the rounds model and the private `recordings` bucket.
+2. When it is ready: **SQL Editor → New query**. Open `supabase/schema.sql` from this repo, paste everything, **Run**. Then do the same with `supabase/migrations/002_rounds.sql` and `supabase/migrations/003_asks.sql`. Together they create the tables, the rounds model and the private `recordings` bucket.
 3. **Authentication → URL Configuration**:
    - Site URL: `https://hq.thenameless.studio`
    - Redirect URLs, add both: `https://hq.thenameless.studio/auth/callback` and `https://*.vercel.app/auth/callback`
@@ -60,8 +60,9 @@ Nothing else changes. The main site stays on Hostinger exactly as it is. DNS usu
 ## Day to day
 
 - New client: HQ → New client → edit the cards for the person → Create → send the link on WhatsApp. That is round 1.
-- Confirm the shoot: on his HQ page, pick one of the days he tapped, add a note, Confirm. His page shows the date and his status moves to shoot.
-- Second shoot: New round → edit → Go live. The same link now shows him the new cards. Old rounds stay on file.
+- Shoot days: his page shows what he tapped; you plan around it.
+- Need more from him: HQ → Ask him something. It appears on his page under "From Akshay"; his answer and transcript come back to HQ.
+- Starting over (after a test, say): Reset everything on his HQ page.
 - Everything he does appears in HQ as it happens. No email step.
 - To change his cards after the link is out: HQ → Edit page. Answers already given are kept by card id.
 - Akshay's voice clips: upload the audio anywhere public (WordPress media library is fine) and put the URL in the card's `clip` field.

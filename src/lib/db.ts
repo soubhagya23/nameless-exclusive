@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "./supabase-admin";
-import type { Client, CardAnswer, Recording, Brief, Round, RoundConfig } from "./types";
+import type { Client, CardAnswer, Recording, Brief, Round, RoundConfig, Ask } from "./types";
 import { defaultRound } from "./templates";
 
 export async function getClientBySlug(slug: string): Promise<Client | null> {
@@ -50,6 +50,11 @@ export async function getRecordings(clientId: string, roundId?: string): Promise
 export async function getBriefs(clientId: string): Promise<Brief[]> {
   const { data } = await supabaseAdmin().from("briefs").select("*").eq("client_id", clientId).order("created_at", { ascending: false });
   return (data || []) as Brief[];
+}
+
+export async function getAsks(clientId: string): Promise<Ask[]> {
+  const { data } = await supabaseAdmin().from("asks").select("*").eq("client_id", clientId).order("created_at", { ascending: false });
+  return (data || []) as Ask[];
 }
 
 export async function logEvent(clientId: string, type: string, payload: Record<string, unknown> = {}) {

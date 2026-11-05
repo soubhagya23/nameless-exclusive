@@ -10,10 +10,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
   const client = await getClientBySlug(slug);
   if (!client) return NextResponse.json({ error: "not found" }, { status: 404 });
   const body = await req.json().catch(() => null);
-  const round = await getRound(String(body?.roundId || ""));
-  if (!round || round.client_id !== client.id || round.status !== "live") return NextResponse.json({ error: "round not live" }, { status: 409 });
   const kind = String(body?.kind || "");
   if (!["fix", "drive", "answer"].includes(kind)) return NextResponse.json({ error: "bad kind" }, { status: 400 });
+  const round = await getRound(String(body?.roundId || ""));
+  if (!round || round.client_id !== client.id) return NextResponse.json({ error: "unknown round" }, { status: 409 });
+  if (kind !== "answer" && round.status !== "live") return NextResponse.json({ error: "round not live" }, { status: 409 });
   const cardId = body?.cardId ? String(body.cardId) : null;
   const rawMime = String(body?.mime || "audio/webm");
   const baseMime = rawMime.split(";")[0].trim();
