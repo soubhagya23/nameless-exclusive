@@ -10,7 +10,7 @@ Everything below is a one-time job. About twenty minutes. Do it in order.
    - Site URL: `https://hq.thenameless.studio`
    - Redirect URLs, add both: `https://hq.thenameless.studio/auth/callback` and `https://*.vercel.app/auth/callback`
 4. **Authentication → Providers → Email**: leave Email enabled. Turn **off** "Confirm email" is not needed; magic links work as is.
-5. **Project Settings → API**. Keep this tab open. You need three values: Project URL, `anon` key, `service_role` key.
+5. **Project Settings → API Keys**. Keep this tab open. You need three values: the Project URL, the **Publishable key** (`sb_publishable_…`) and the **Secret key** (`sb_secret_…`, eye icon reveals it). Older projects show these as `anon` and `service_role`; same thing.
 
 ## 2. Keys
 
@@ -27,8 +27,8 @@ Put a small amount of credit on each. A full handshake costs well under a dollar
 | Name | Value |
 |---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → anon key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → service_role key (keep this one secret) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Publishable key (`sb_publishable_…`) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Secret key (`sb_secret_…`, keep it secret) |
 | `OPENAI_API_KEY` | your OpenAI key |
 | `ANTHROPIC_API_KEY` | your Anthropic key |
 | `HQ_ALLOWED_EMAILS` | `hello@thenameless.studio,ranjansoubhagya.master@gmail.com` plus Akshay's email, comma separated, no spaces |
