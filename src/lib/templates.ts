@@ -1,6 +1,6 @@
 import type { RoundConfig } from "./types";
 
-/** Round 1 for a real estate founder. HQ > New client starts from this; edit the cards for the person. */
+/** Shoot 1 questionnaire for a real estate founder. HQ > New client starts from this; edit the cards for the person. */
 export const defaultRound: RoundConfig = {
   lede: "We wrote your story from what we already know. You just tell us where we got it wrong. Thumbs only, no typing.",
   intro: "Each card is one line of the story we plan to build. Nothing here is public yet.",
@@ -24,6 +24,7 @@ export const defaultRound: RoundConfig = {
     { q: "What should stay private.", h: "Family, history, opinions, filming situations you do not want. Say it once and we keep to it." },
   ],
   shootOptions: [],
+  photoAsks: ["A photo of a listing we could film at", "A photo of your desk or the office"],
 };
 
 export const jatinRound: RoundConfig = {
@@ -43,26 +44,28 @@ export const jatinRound: RoundConfig = {
     { id: "rhythm", claim: "Stories almost every day, 12 to 15 reels a month, and you check with us before reposting anything.", why: "That is the operating rhythm from day one." },
   ],
   shootOptions: ["Sat 15 Nov", "Tue 18 Nov", "Sat 22 Nov"],
+  photoAsks: ["A photo of a listing we could film at", "A photo of your desk at the Truganina office"],
 };
 
-/** Starting point for a round after the first shoot. Shorter: what changed, what to film next. */
+/** Starting point for shoot 2 and 3 when the AI draft is not used. Short: what changed, what to film next. */
 export const followUpRound: RoundConfig = {
-  lede: "Shoot one is in. Before the next one, a few quick checks so we film the right things.",
+  lede: "The last shoot is in. A few quick checks before the next one, so we film the right things.",
   intro: "Tap through. Anything you are not sure about, say it in a voice note.",
   secondsPerPrompt: 60,
   cards: [
-    { id: "feel", claim: "The first reels feel like you, not like an ad.", why: "If they do not, we change the direction, not the volume." },
-    { id: "comfort", claim: "You are more comfortable on camera than on shoot day one.", why: "We push a little further each time, never a lot." },
+    { id: "feel", claim: "The reels so far feel like you, not like an ad.", why: "If they do not, we change the direction, not the volume." },
+    { id: "comfort", claim: "You are more comfortable on camera than on the first shoot day.", why: "We push a little further each time, never a lot." },
     { id: "next-listing", claim: "There is at least one listing we can film at next time.", why: "Keys, light, a walkthrough." },
     { id: "client-on-camera", claim: "A happy client would be fine saying a few words on camera.", why: "Two sentences is enough. We ask them, not you." },
     { id: "topic", claim: "There is one thing you keep explaining to buyers that we should turn into a series.", why: "Say what it is in a voice note." },
   ],
   prompts: [
-    { q: "What people said about the first reels.", h: "Clients, friends, other agents. The exact words if you remember them." },
-    { q: "One moment since the shoot that should have been filmed.", h: "A negotiation, a handover, a surprise. What happened." },
-    { q: "What you want more of, and less of, next time.", h: "Be blunt. This is how the second shoot gets better." },
+    { q: "What people said about the reels so far.", h: "Clients, friends, other agents. The exact words if you remember them." },
+    { q: "One moment since the last shoot that should have been filmed.", h: "A negotiation, a handover, a surprise. What happened." },
+    { q: "What you want more of, and less of, next time.", h: "Be blunt. This is how the next shoot gets better." },
   ],
   shootOptions: [],
+  photoAsks: ["A photo of the listing for this shoot"],
 };
 
 export function slugify(s: string) {

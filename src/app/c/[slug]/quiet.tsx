@@ -1,5 +1,6 @@
 /** What the client sees between rounds: nothing to do, and his shoot day if one is confirmed. */
 export default function Quiet({ client, round }: { client: { name: string; first_name: string; portrait_url: string | null }; round: { title: string; shoot_date: string | null; shoot_note: string | null } | null }) {
+  void round;
   return (
     <div>
       <header className="band dark hero" style={{ minHeight: "100vh", paddingBottom: 56 }}>

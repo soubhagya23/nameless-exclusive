@@ -1,17 +1,29 @@
 export type Card = { id: string; claim: string; why: string; clip?: string };
 export type Prompt = { q: string; h: string };
 
-/** What one round asks of the client. Lives on the round, not the client. */
+/** What one shoot's questionnaire asks of the client. Lives on the round (= shoot). */
 export type RoundConfig = {
   lede?: string;
-  intro?: string; // one line under "Is this you?"
+  intro?: string;
   cards: Card[];
   prompts: Prompt[];
   shootOptions: string[];
+  photoAsks: string[]; // "A photo of the listing we will film at"
   secondsPerPrompt?: number;
 };
 
-/** Client-level settings kept in clients.config. */
+/** The shoot plan we send him once we have planned the day. */
+export type ShootPlan = {
+  date?: string; // "Sat 15 Nov"
+  callTime?: string; // "9:00 AM"
+  place?: string; // "Your place, then the office"
+  runOfDay?: string; // free text, one line per stop
+  wear?: string;
+  bring?: string;
+  checklist?: string[]; // day-before ticks
+  note?: string;
+};
+
 export type ClientConfig = {
   area?: string;
   akshayName?: string;
@@ -38,11 +50,19 @@ export type Round = {
   title: string;
   status: "draft" | "live" | "done";
   config: RoundConfig;
+  plan: ShootPlan;
+  plan_status: "none" | "sent" | "accepted";
+  plan_accepted_at: string | null;
+  sent_at: string | null;
+  checklist_done: string[];
   shoot_date: string | null;
   shoot_note: string | null;
   created_at: string;
   updated_at: string;
 };
+
+/** What HQ and the client strip show for a shoot. Derived, never stored. */
+export type ShootStage = "not sent" | "live" | "answered" | "planned" | "confirmed" | "done";
 
 export type CardAnswer = {
   id: string;
@@ -70,6 +90,16 @@ export type Recording = {
   created_at: string;
 };
 
+export type Photo = {
+  id: string;
+  client_id: string;
+  round_id: string | null;
+  prompt: string;
+  storage_path: string;
+  mime: string;
+  created_at: string;
+};
+
 export type Brief = {
   id: string;
   client_id: string;
@@ -88,4 +118,12 @@ export type Ask = {
   recording_id: string | null;
   created_at: string;
   answered_at: string | null;
+};
+
+export type Event = {
+  id: number;
+  client_id: string;
+  type: string;
+  payload: Record<string, unknown>;
+  created_at: string;
 };

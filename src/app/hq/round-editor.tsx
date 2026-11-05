@@ -9,8 +9,9 @@ import { slugify } from "@/lib/templates";
  * Keeps its state as a RoundConfig and writes it into a hidden field named "round" for the server action.
  */
 export default function RoundEditor({ initial }: { initial: RoundConfig }) {
-  const [cfg, setCfg] = useState<RoundConfig>({ ...initial, cards: [...initial.cards], prompts: [...initial.prompts], shootOptions: [...initial.shootOptions] });
+  const [cfg, setCfg] = useState<RoundConfig>({ ...initial, cards: [...initial.cards], prompts: [...initial.prompts], shootOptions: [...initial.shootOptions], photoAsks: [...(initial.photoAsks || [])] });
   const [newDay, setNewDay] = useState("");
+  const [newPhoto, setNewPhoto] = useState("");
 
   const set = (patch: Partial<RoundConfig>) => setCfg((c) => ({ ...c, ...patch }));
   const move = <T,>(arr: T[], i: number, dir: -1 | 1) => { const j = i + dir; if (j < 0 || j >= arr.length) return arr; const a = [...arr]; [a[i], a[j]] = [a[j], a[i]]; return a; };
@@ -82,8 +83,25 @@ export default function RoundEditor({ initial }: { initial: RoundConfig }) {
       </div>
 
       <div className="panel">
+        <h3>Photos to ask for</h3>
+        <p style={{ fontSize: 14, marginBottom: 12 }}>Each one becomes a card with a camera button. "A photo of the listing we will film at". Leave empty to skip.</p>
+        <div style={{ display: "grid", gap: 8, marginBottom: 10 }}>
+          {cfg.photoAsks.map((d, i) => (
+            <div key={i} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input value={d} onChange={(e) => { const photoAsks = [...cfg.photoAsks]; photoAsks[i] = e.target.value; set({ photoAsks }); }} style={{ flex: 1, font: "inherit", fontSize: 15, padding: "10px 12px", border: "1px solid var(--line)" }} />
+              <button className="btn small ghost" type="button" onClick={() => set({ photoAsks: cfg.photoAsks.filter((_, k) => k !== i) })}>Remove</button>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <input value={newPhoto} onChange={(e) => setNewPhoto(e.target.value)} placeholder="A photo of ..." style={{ font: "inherit", fontSize: 15, padding: "10px 12px", border: "1px solid var(--line)", minWidth: 260 }} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (newPhoto.trim()) { set({ photoAsks: [...cfg.photoAsks, newPhoto.trim()] }); setNewPhoto(""); } } }} />
+          <button className="btn small ghost" type="button" onClick={() => { if (newPhoto.trim()) { set({ photoAsks: [...cfg.photoAsks, newPhoto.trim()] }); setNewPhoto(""); } }}>Add</button>
+        </div>
+      </div>
+
+      <div className="panel">
         <h3>Shoot day options</h3>
-        <p style={{ fontSize: 14, marginBottom: 12 }}>He taps all that could work. Leave empty if this round has no shoot to plan.</p>
+        <p style={{ fontSize: 14, marginBottom: 12 }}>He taps all that could work. Leave empty if you already have the date.</p>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
           {cfg.shootOptions.map((d, i) => (
             <span key={i} className="pill" style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>{d}<button type="button" onClick={() => set({ shootOptions: cfg.shootOptions.filter((_, k) => k !== i) })} style={{ border: 0, background: "none", padding: 0, fontSize: 14, lineHeight: 1 }} aria-label={`Remove ${d}`}>×</button></span>

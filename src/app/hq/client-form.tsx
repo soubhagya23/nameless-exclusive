@@ -34,14 +34,14 @@ export default function ClientForm({ clientId, initial, round }: { clientId: str
       </div>
       {round ? (
         <div>
-          <h3 style={{ marginBottom: 10 }}>Round 1: the handshake</h3>
+          <h3 style={{ marginBottom: 10 }}>Shoot 1 questions (the handshake)</h3>
           <RoundEditor initial={round} />
         </div>
       ) : null}
       {err ? <div className="notice err">{err}</div> : null}
       <div className="actions" style={{ display: "flex", gap: 10, alignItems: "center" }}>
-        <button className="btn" type="submit" disabled={busy}>{busy ? "Saving" : clientId ? "Save changes" : "Create client and go live"}</button>
-        {!clientId ? <span className="label" style={{ color: "var(--dim)" }}>His page is live the moment you create him.</span> : null}
+        <button className="btn" type="submit" disabled={busy}>{busy ? "Saving" : clientId ? "Save changes" : "Create client"}</button>
+        {!clientId ? <span className="label" style={{ color: "var(--dim)" }}>Nothing goes to him until you press Send on his HQ page.</span> : null}
       </div>
     </form>
   );

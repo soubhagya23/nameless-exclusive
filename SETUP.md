@@ -5,7 +5,7 @@ Everything below is a one-time job. About twenty minutes. Do it in order.
 ## 1. Supabase (database, storage, HQ login)
 
 1. supabase.com → New project. Name `nameless`, region Sydney. Save the database password somewhere safe (you will not need it day to day).
-2. When it is ready: **SQL Editor → New query**. Open `supabase/schema.sql` from this repo, paste everything, **Run**. Then do the same with `supabase/migrations/002_rounds.sql` and `supabase/migrations/003_asks.sql`. Together they create the tables, the rounds model and the private `recordings` bucket.
+2. When it is ready: **SQL Editor → New query**. Open `supabase/schema.sql` from this repo, paste everything, **Run**. Then do the same with every file in `supabase/migrations/`, in number order (002, 003, 004). Together they create the tables, the rounds model and the private `recordings` bucket.
 3. **Authentication → URL Configuration**:
    - Site URL: `https://hq.thenameless.studio`
    - Redirect URLs, add both: `https://hq.thenameless.studio/auth/callback` and `https://*.vercel.app/auth/callback`
@@ -59,13 +59,14 @@ Nothing else changes. The main site stays on Hostinger exactly as it is. DNS usu
 
 ## Day to day
 
-- New client: HQ → New client → edit the cards for the person → Create → send the link on WhatsApp. That is round 1.
-- Shoot days: his page shows what he tapped; you plan around it.
-- Need more from him: HQ → Ask him something. It appears on his page under "From Akshay"; his answer and transcript come back to HQ.
-- Starting over (after a test, say): Reset everything on his HQ page.
-- Everything he does appears in HQ as it happens. No email step.
-- To change his cards after the link is out: HQ → Edit page. Answers already given are kept by card id.
-- Akshay's voice clips: upload the audio anywhere public (WordPress media library is fine) and put the URL in the card's `clip` field.
+- New client: HQ → New client → edit the shoot 1 cards for the person → Create. Nothing reaches him yet.
+- Send: on his HQ page, Shoot 1 → **Send to him**. Then **Copy the WhatsApp** and paste it to him. His page is live.
+- He taps cards, records the drive, sends photos, picks days. It all lands in HQ as it happens; the Activity panel shows when he was last on.
+- Need more from him: **Ask him something**. It appears on his page under "From Akshay".
+- Plan the shoot: fill the **Shoot plan** form (date, call time, where, run of day, wear, bring, day-before checklist) → **Send plan to his page**. He taps Works for me; the day before, he ticks the list.
+- Next shoot: **New shoot** → "Draft with AI from what we know" → read it, edit, **Send to him**. The same link shows him shoot 2.
+- Quiet client: his tile turns amber after 48 hours with nothing answered, with a one-tap nudge to paste.
+- Starting over after a test: **Reset everything** on his HQ page.
 
 ## Local development
 
