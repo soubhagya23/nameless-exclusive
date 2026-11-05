@@ -8,8 +8,6 @@ const MODEL = "claude-sonnet-4-5";
  * Akshay edits this; he does not start from a blank page.
  */
 export async function generateBrief(clientId: string): Promise<string> {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) throw new Error("ANTHROPIC_API_KEY missing");
   const client = await getClientById(clientId);
   if (!client) throw new Error("client not found");
   const [answers, recordings] = await Promise.all([getAnswers(clientId), getRecordings(clientId)]);
@@ -47,14 +45,33 @@ Write the brand brief draft with these sections, as markdown headings:
 
 Keep it under 900 words. Where a section has no material yet, write one line saying what is missing instead of guessing.`;
 
-  const r = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({ model: MODEL, max_tokens: 2000, system, messages: [{ role: "user", content: user }] }),
-  });
-  if (!r.ok) throw new Error(`Anthropic ${r.status}: ${(await r.text()).slice(0, 300)}`);
-  const j = (await r.json()) as { content: { type: string; text?: string }[] };
-  const text = j.content.filter((c) => c.type === "text").map((c) => c.text || "").join("\n").trim();
-  await supabaseAdmin().from("briefs").insert({ client_id: clientId, content: text, model: MODEL });
+  const { text, model } = await write(system, user);
+  await supabaseAdmin().from("briefs").insert({ client_id: clientId, content: text, model });
   return text;
+}
+
+/** Claude when an Anthropic key is set, otherwise OpenAI. Same prompt either way. */
+async function write(system: string, user: string): Promise<{ text: string; model: string }> {
+  const anthropic = process.env.ANTHROPIC_API_KEY;
+  if (anthropic) {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "x-api-key": anthropic, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+      body: JSON.stringify({ model: MODEL, max_tokens: 2000, system, messages: [{ role: "user", content: user }] }),
+    });
+    if (!r.ok) throw new Error(`Anthropic ${r.status}: ${(await r.text()).slice(0, 300)}`);
+    const j = (await r.json()) as { content: { type: string; text?: string }[] };
+    return { text: j.content.filter((c) => c.type === "text").map((c) => c.text || "").join("\n").trim(), model: MODEL };
+  }
+  const openai = process.env.OPENAI_API_KEY;
+  if (!openai) throw new Error("Set ANTHROPIC_API_KEY or OPENAI_API_KEY");
+  const model = "gpt-4.1";
+  const r = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${openai}`, "content-type": "application/json" },
+    body: JSON.stringify({ model, max_tokens: 2000, messages: [{ role: "system", content: system }, { role: "user", content: user }] }),
+  });
+  if (!r.ok) throw new Error(`OpenAI ${r.status}: ${(await r.text()).slice(0, 300)}`);
+  const j = (await r.json()) as { choices: { message: { content: string } }[] };
+  return { text: (j.choices[0]?.message?.content || "").trim(), model };
 }

@@ -15,7 +15,7 @@ Everything below is a one-time job. About twenty minutes. Do it in order.
 ## 2. Keys
 
 - OpenAI: platform.openai.com → API keys → Create. Used for transcription only.
-- Anthropic: console.anthropic.com → API keys → Create. Used for the brief drafts only.
+- Anthropic (optional): console.anthropic.com → API keys → Create. Used for the brief drafts. Without it, OpenAI writes the briefs too.
 
 Put a small amount of credit on each. A full handshake costs well under a dollar.
 
@@ -30,7 +30,7 @@ Put a small amount of credit on each. A full handshake costs well under a dollar
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Publishable key (`sb_publishable_…`) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Secret key (`sb_secret_…`, keep it secret) |
 | `OPENAI_API_KEY` | your OpenAI key |
-| `ANTHROPIC_API_KEY` | your Anthropic key |
+| `ANTHROPIC_API_KEY` | your Anthropic key (optional, leave out if you only have OpenAI) |
 | `HQ_ALLOWED_EMAILS` | `hello@thenameless.studio,ranjansoubhagya.master@gmail.com` plus Akshay's email, comma separated, no spaces |
 | `CLIENT_HOST` | `exclusive.thenameless.studio` |
 | `HQ_HOST` | `hq.thenameless.studio` |
