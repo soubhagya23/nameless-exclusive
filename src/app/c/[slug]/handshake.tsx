@@ -188,6 +188,18 @@ export default function Handshake({ client, initialAnswers, initialRecordings, s
     if (mr && mr.state !== "inactive") mr.stop(); else setRecording("");
   }
 
+  async function redoDrive() {
+    const rec = recs.find((r) => r.kind === "drive");
+    if (!rec) return;
+    try {
+      await post("recording/delete", { recordingId: rec.id });
+      setRecs((r) => r.filter((x) => x.id !== rec.id));
+      if (driveUrl) URL.revokeObjectURL(driveUrl);
+      setDriveUrl(null);
+      say("Cleared. Start the drive whenever you are ready.");
+    } catch { say("Could not clear it. Check your connection."); }
+  }
+
   function nextPrompt() {
     const k = liveIdxRef.current + 1;
     if (k >= prompts.length) { stopRecording(); return; }
@@ -282,7 +294,13 @@ export default function Handshake({ client, initialAnswers, initialRecordings, s
               {driveRec ? <span className="state">{fmt(driveRec.duration_secs)} recorded</span> : null}
               {uploading && recording === "" ? <span className="state">Sending</span> : null}
             </div>
-            {driveUrl ? <div><span className="label" style={{ color: "var(--dim)" }}>Your drive</span><audio controls preload="metadata" src={driveUrl} style={{ marginTop: 8 }} /></div> : null}
+            {driveRec ? (
+              <div style={{ display: "grid", gap: 8 }}>
+                <span className="label" style={{ color: "var(--dim)" }}>Your drive{driveUrl ? "" : " is with us"}</span>
+                {driveUrl ? <audio controls preload="metadata" src={driveUrl} /> : null}
+                <button className="btn link" type="button" style={{ justifySelf: "start" }} onClick={redoDrive} disabled={uploading}>Record it again</button>
+              </div>
+            ) : null}
           </div>
           {cfg.shootOptions.length ? (
             <div style={{ marginTop: 28 }}>
