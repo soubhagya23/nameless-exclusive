@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getClientBySlug } from "@/lib/db";
+import { getClientBySlug, getRound } from "@/lib/db";
 import { supabaseAdmin, RECORDINGS_BUCKET } from "@/lib/supabase-admin";
 
 const EXT: Record<string, string> = { "audio/webm": "webm", "audio/mp4": "m4a", "audio/mpeg": "mp3", "audio/ogg": "ogg", "audio/wav": "wav", "audio/x-m4a": "m4a", "audio/aac": "aac" };
@@ -10,6 +10,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
   const client = await getClientBySlug(slug);
   if (!client) return NextResponse.json({ error: "not found" }, { status: 404 });
   const body = await req.json().catch(() => null);
+  const round = await getRound(String(body?.roundId || ""));
+  if (!round || round.client_id !== client.id || round.status !== "live") return NextResponse.json({ error: "round not live" }, { status: 409 });
   const kind = String(body?.kind || "");
   if (!["fix", "drive", "answer"].includes(kind)) return NextResponse.json({ error: "bad kind" }, { status: 400 });
   const cardId = body?.cardId ? String(body.cardId) : null;
@@ -20,12 +22,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
   const sb = supabaseAdmin();
   const { data: rec, error } = await sb
     .from("recordings")
-    .insert({ client_id: client.id, kind, card_id: cardId, storage_path: "pending", mime: baseMime, transcript_status: "pending" })
+    .insert({ client_id: client.id, round_id: round.id, kind, card_id: cardId, storage_path: "pending", mime: baseMime, transcript_status: "pending" })
     .select("id")
     .single();
   if (error || !rec) return NextResponse.json({ error: error?.message || "insert failed" }, { status: 500 });
 
-  const path = `${client.slug}/${kind}${cardId ? "-" + cardId : ""}-${rec.id}.${ext}`;
+  const path = `${client.slug}/r${round.number}-${kind}${cardId ? "-" + cardId : ""}-${rec.id}.${ext}`;
   await sb.from("recordings").update({ storage_path: path }).eq("id", rec.id);
   const { data: signed, error: sErr } = await sb.storage.from(RECORDINGS_BUCKET).createSignedUploadUrl(path);
   if (sErr || !signed) return NextResponse.json({ error: sErr?.message || "sign failed" }, { status: 500 });

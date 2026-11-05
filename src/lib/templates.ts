@@ -1,15 +1,10 @@
-import type { ClientConfig } from "./types";
+import type { RoundConfig } from "./types";
 
-/**
- * Default handshake template for a real estate founder. HQ > New client starts from this,
- * then you edit the cards for the person. Jatin's set is the first real one.
- */
-export const defaultConfig: ClientConfig = {
-  headline: "We did the homework.",
+/** Round 1 for a real estate founder. HQ > New client starts from this; edit the cards for the person. */
+export const defaultRound: RoundConfig = {
   lede: "We wrote your story from what we already know. You just tell us where we got it wrong. Thumbs only, no typing.",
-  area: "",
+  intro: "Each card is one line of the story we plan to build. Nothing here is public yet.",
   secondsPerPrompt: 90,
-  akshayName: "Akshay",
   cards: [
     { id: "name", claim: "Six months from now, when someone in your patch talks real estate, your name comes up first.", why: "That is the whole job. Recall, then trust." },
     { id: "who", claim: "The people you most want are first-home buyers and upgrading families in your area.", why: "The content is aimed at them, not at other agents." },
@@ -31,9 +26,8 @@ export const defaultConfig: ClientConfig = {
   shootOptions: [],
 };
 
-export const jatinConfig: ClientConfig = {
-  ...defaultConfig,
-  area: "Melbourne North and West",
+export const jatinRound: RoundConfig = {
+  ...defaultRound,
   cards: [
     { id: "name", claim: "Six months from now, when someone in the West talks real estate, your name comes up first.", why: "That is the whole job. Recall, then trust." },
     { id: "who", claim: "The people you most want are first-home buyers and upgrading families in Melbourne's North and West.", why: "Truganina and around is the heart of it." },
@@ -50,3 +44,27 @@ export const jatinConfig: ClientConfig = {
   ],
   shootOptions: ["Sat 15 Nov", "Tue 18 Nov", "Sat 22 Nov"],
 };
+
+/** Starting point for a round after the first shoot. Shorter: what changed, what to film next. */
+export const followUpRound: RoundConfig = {
+  lede: "Shoot one is in. Before the next one, a few quick checks so we film the right things.",
+  intro: "Tap through. Anything you are not sure about, say it in a voice note.",
+  secondsPerPrompt: 60,
+  cards: [
+    { id: "feel", claim: "The first reels feel like you, not like an ad.", why: "If they do not, we change the direction, not the volume." },
+    { id: "comfort", claim: "You are more comfortable on camera than on shoot day one.", why: "We push a little further each time, never a lot." },
+    { id: "next-listing", claim: "There is at least one listing we can film at next time.", why: "Keys, light, a walkthrough." },
+    { id: "client-on-camera", claim: "A happy client would be fine saying a few words on camera.", why: "Two sentences is enough. We ask them, not you." },
+    { id: "topic", claim: "There is one thing you keep explaining to buyers that we should turn into a series.", why: "Say what it is in a voice note." },
+  ],
+  prompts: [
+    { q: "What people said about the first reels.", h: "Clients, friends, other agents. The exact words if you remember them." },
+    { q: "One moment since the shoot that should have been filmed.", h: "A negotiation, a handover, a surprise. What happened." },
+    { q: "What you want more of, and less of, next time.", h: "Be blunt. This is how the second shoot gets better." },
+  ],
+  shootOptions: [],
+};
+
+export function slugify(s: string) {
+  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "card";
+}

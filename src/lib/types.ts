@@ -1,15 +1,20 @@
 export type Card = { id: string; claim: string; why: string; clip?: string };
 export type Prompt = { q: string; h: string };
 
-export type ClientConfig = {
-  headline?: string; // defaults to "We did the homework."
+/** What one round asks of the client. Lives on the round, not the client. */
+export type RoundConfig = {
   lede?: string;
-  area?: string; // caption under the portrait, e.g. "Melbourne North and West"
+  intro?: string; // one line under "Is this you?"
   cards: Card[];
   prompts: Prompt[];
-  shootOptions: string[]; // e.g. ["Sat 15 Nov", "Tue 18 Nov"]
+  shootOptions: string[];
   secondsPerPrompt?: number;
-  akshayName?: string; // who "asks" the cards
+};
+
+/** Client-level settings kept in clients.config. */
+export type ClientConfig = {
+  area?: string;
+  akshayName?: string;
 };
 
 export type Client = {
@@ -26,9 +31,23 @@ export type Client = {
   updated_at: string;
 };
 
+export type Round = {
+  id: string;
+  client_id: string;
+  number: number;
+  title: string;
+  status: "draft" | "live" | "done";
+  config: RoundConfig;
+  shoot_date: string | null;
+  shoot_note: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type CardAnswer = {
   id: string;
   client_id: string;
+  round_id: string | null;
   card_id: string;
   verdict: "yes" | "no" | "skip";
   note: string;
@@ -39,6 +58,7 @@ export type CardAnswer = {
 export type Recording = {
   id: string;
   client_id: string;
+  round_id: string | null;
   kind: "fix" | "drive" | "answer";
   card_id: string | null;
   storage_path: string;

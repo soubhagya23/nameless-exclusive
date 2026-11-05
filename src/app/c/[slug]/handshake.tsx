@@ -2,14 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import type { ClientConfig } from "@/lib/types";
+import type { RoundConfig } from "@/lib/types";
 
 type Verdict = "yes" | "no" | "skip";
 type Answer = { card_id: string; verdict: Verdict; note: string; recording_id: string | null };
 type Rec = { id: string; kind: "fix" | "drive" | "answer"; card_id: string | null; duration_secs: number };
 
 type Props = {
-  client: { slug: string; name: string; first_name: string; portrait_url: string | null; wa_number: string | null; shoot_days: string[]; config: ClientConfig };
+  client: { slug: string; name: string; first_name: string; portrait_url: string | null; wa_number: string | null; shoot_days: string[]; akshayName: string };
+  round: { id: string; number: number; title: string; config: RoundConfig; shoot_date: string | null; shoot_note: string | null };
   initialAnswers: Answer[];
   initialRecordings: Rec[];
   supabaseUrl: string;
@@ -29,8 +30,8 @@ function pickMime() {
   return "";
 }
 
-export default function Handshake({ client, initialAnswers, initialRecordings, supabaseUrl, supabaseAnon }: Props) {
-  const cfg = client.config;
+export default function Handshake({ client, round, initialAnswers, initialRecordings, supabaseUrl, supabaseAnon }: Props) {
+  const cfg = round.config;
   const cards = cfg.cards;
   const prompts = cfg.prompts;
   const secondsPerPrompt = cfg.secondsPerPrompt || 90;
@@ -76,14 +77,16 @@ export default function Handshake({ client, initialAnswers, initialRecordings, s
   }
 
   async function post(path: string, body: unknown) {
-    const r = await fetch(api(path), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const r = await fetch(api(path), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...(body as object), roundId: round.id }) });
     if (!r.ok) throw new Error(await r.text());
     return r.json();
   }
 
   function jobLine() {
     if (!allDone) return answered > 0 ? `Finish the cards. ${cards.length - answered} left.` : `Tap through ${cards.length} cards. About three minutes.`;
-    return driveRec ? "Done. Nothing else needed this week." : "Cards done. Ten minutes on your next drive.";
+    if (prompts.length && !driveRec) return "Cards done. Ten minutes on your next drive.";
+    if (round.shoot_date) return `Done. Shoot day: ${round.shoot_date}.`;
+    return "Done. Nothing else needed this week.";
   }
 
   function nextUnanswered(from: number, map: Record<string, Answer>) {
@@ -210,7 +213,7 @@ export default function Handshake({ client, initialAnswers, initialRecordings, s
 
   const wa = (text: string) => `https://wa.me/${client.wa_number || ""}?text=${encodeURIComponent(text)}`;
   const driveWa = wa(`Drive notes from ${client.first_name}. Sending them one by one:\n` + prompts.map((p, k) => `${k + 1}. ${p.q}`).join("\n"));
-  const who = cfg.akshayName || "Akshay";
+  const who = client.akshayName;
 
   return (
     <div>
@@ -223,7 +226,7 @@ export default function Handshake({ client, initialAnswers, initialRecordings, s
           <div className="top">
             <div>
               <span className="label" style={{ color: "var(--dim)" }}>( Exclusive / {client.name} )</span>
-              <h1 style={{ marginTop: 14 }}>{client.first_name}.<br />We did the <span className="acc">homework.</span></h1>
+              <h1 style={{ marginTop: 14 }}>{client.first_name}.<br />{round.number === 1 ? <>We did the <span className="acc">homework.</span></> : <>Round <span className="acc">{round.number}.</span></>}</h1>
               <p className="lede">{cfg.lede}</p>
             </div>
             {client.portrait_url ? <figure><img src={client.portrait_url} alt={client.name} width={560} height={560} /></figure> : <div />}
@@ -231,14 +234,15 @@ export default function Handshake({ client, initialAnswers, initialRecordings, s
           <div className="job">
             <span className="label">Your one job this week</span>
             <b>{jobLine()}</b>
-            <div style={{ marginTop: 10 }}><a className="btn" href={allDone ? "#drive" : "#cards"}>{allDone ? "Go to the drive" : "Start"}</a></div>
+            {round.shoot_date ? <span style={{ color: "var(--dim)" }}>{round.shoot_note || "We message you the morning before with the run of day."}</span> : null}
+            {!allDone || (prompts.length && !driveRec) ? <div style={{ marginTop: 10 }}><a className="btn" href={allDone ? "#drive" : "#cards"}>{allDone ? "Go to the drive" : "Start"}</a></div> : null}
           </div>
         </div>
       </header>
 
       <section className="band grey" id="cards">
         <div className="in">
-          <div className="head"><span className="label">( 01 )</span><div><h2>Is this <span className="acc">you?</span></h2><p>Each card is one line of the story we plan to build. Nothing here is public yet. Tap That is me, Not quite, or Do not use.</p></div></div>
+          <div className="head"><span className="label">( 01 )</span><div><h2>Is this <span className="acc">you?</span></h2><p>{cfg.intro} Tap That is me, Not quite, or Do not use.</p></div></div>
           {!allDone ? (
             <div className="card">
               <div className="meta">
@@ -275,16 +279,17 @@ export default function Handshake({ client, initialAnswers, initialRecordings, s
           ) : (
             <div className="done">
               <h3>Cards <span className="acc">done.</span></h3>
-              <p>All {cards.length} are with us. Next, ten minutes on your next drive.</p>
-              <a className="btn" href="#drive">Go to the drive</a>
+              <p>All {cards.length} are with us.{prompts.length ? " Next, ten minutes on your next drive." : ""}</p>
+              {prompts.length ? <a className="btn" href="#drive">Go to the drive</a> : null}
               <button className="btn link" type="button" style={{ marginLeft: 16 }} onClick={() => { setIdx(0); setAnswers({}); }}>Go back through the cards</button>
             </div>
           )}
         </div>
       </section>
 
-      <section className="band dark" id="drive">
+      {prompts.length || cfg.shootOptions.length ? <section className="band dark" id="drive">
         <div className="in">
+          {prompts.length ? <>
           <div className="head"><span className="label">( 02 )</span><div><h2>Drive and <span className="acc">talk.</span></h2><p style={{ color: "var(--dim)" }}>Next time you are in the car, press Start the drive, put the phone in the cradle, and talk. We show you one thing to talk about at a time and move on by ourselves. One recording, no stopping and starting. About ten minutes. Hindi, Punjabi, English or a mix, whatever comes out.</p></div></div>
           <div className="drive">
             <div className="prompts">{prompts.map((p, k) => <span key={k}><b>{k + 1}. </b>{p.q}</span>)}</div>
@@ -302,14 +307,15 @@ export default function Handshake({ client, initialAnswers, initialRecordings, s
               </div>
             ) : null}
           </div>
+          </> : null}
           {cfg.shootOptions.length ? (
-            <div style={{ marginTop: 28 }}>
+            <div style={{ marginTop: prompts.length ? 28 : 0 }}>
               <span className="label" style={{ color: "var(--dim)", display: "block", marginBottom: 10 }}>Which days could work for the first shoot? Tap all that do.</span>
               <div className="chips">{cfg.shootOptions.map((d) => <button key={d} className="chip" type="button" aria-pressed={days.includes(d)} onClick={() => toggleDay(d)}>{d}</button>)}</div>
             </div>
           ) : null}
         </div>
-      </section>
+      </section> : null}
 
       <section className="band" id="after">
         <div className="in">

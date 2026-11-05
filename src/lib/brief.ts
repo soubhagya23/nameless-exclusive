@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "./supabase-admin";
-import { getClientById, getAnswers, getRecordings } from "./db";
+import { getClientById, getAnswers, getRecordings, listRounds } from "./db";
 
 const MODEL = "claude-sonnet-4-5";
 
@@ -10,29 +10,27 @@ const MODEL = "claude-sonnet-4-5";
 export async function generateBrief(clientId: string): Promise<string> {
   const client = await getClientById(clientId);
   if (!client) throw new Error("client not found");
-  const [answers, recordings] = await Promise.all([getAnswers(clientId), getRecordings(clientId)]);
+  const [answers, recordings, rounds] = await Promise.all([getAnswers(clientId), getRecordings(clientId), listRounds(clientId)]);
 
-  const cardLines = client.config.cards.map((c) => {
-    const a = answers.find((x) => x.card_id === c.id);
-    const v = !a ? "not answered" : a.verdict === "yes" ? "THAT IS ME" : a.verdict === "no" ? `NOT QUITE${a.note ? ": " + a.note : ""}` : "DO NOT USE";
-    const fix = a?.recording_id ? recordings.find((r) => r.id === a.recording_id) : null;
-    return `- "${c.claim}" → ${v}${fix?.transcript ? `\n  Voice note on this card: ${fix.transcript}` : ""}`;
+  const roundBlocks = rounds.slice().reverse().map((rd) => {
+    const cardLines = rd.config.cards.map((c) => {
+      const a = answers.find((x) => x.card_id === c.id && x.round_id === rd.id);
+      const v = !a ? "not answered" : a.verdict === "yes" ? "THAT IS ME" : a.verdict === "no" ? `NOT QUITE${a.note ? ": " + a.note : ""}` : "DO NOT USE";
+      const fix = a?.recording_id ? recordings.find((r) => r.id === a.recording_id) : null;
+      return `- "${c.claim}" → ${v}${fix?.transcript ? `\n  Voice note on this card: ${fix.transcript}` : ""}`;
+    });
+    const drive = recordings.filter((r) => r.kind === "drive" && r.round_id === rd.id && r.transcript).map((r) => r.transcript).join("\n\n");
+    return `ROUND ${rd.number}: ${rd.title}${rd.shoot_date ? ` (shoot day ${rd.shoot_date})` : ""}\nCards:\n${cardLines.join("\n")}\nDrive prompts: ${rd.config.prompts.map((p) => p.q).join(" / ") || "none"}\nDrive transcript:\n${drive || "(none yet)"}`;
   });
-  const drive = recordings.filter((r) => r.kind === "drive" && r.transcript).map((r) => r.transcript).join("\n\n");
   const otherVoice = recordings.filter((r) => r.kind === "answer" && r.transcript).map((r) => r.transcript).join("\n\n");
 
   const system = `You write internal brand briefs for NAMELESS, a personal brand advisory in Melbourne. You write in plain, direct English. Short sentences. No em dashes, no exclamation marks, no emoji, no buzzwords, no "not X but Y" constructions, no hollow praise. Never invent facts: if the material does not say it, you do not say it. Quote the client's own phrases where they are useful, in the language mix he used. The reader is Akshay, the strategist who will refine this, so write for someone who knows the client.`;
 
   const user = `Client: ${client.name}${client.config.area ? ", " + client.config.area : ""}.
 
-CARD VERDICTS (our draft of his story, and what he said to each line):
-${cardLines.join("\n")}
+${roundBlocks.join("\n\n")}
 
-DRIVE RECORDING TRANSCRIPT (he answered these prompts while driving: ${client.config.prompts.map((p) => p.q).join(" / ")}):
-${drive || "(none yet)"}
-
-${otherVoice ? "OTHER VOICE NOTES:\n" + otherVoice + "\n" : ""}
-Write the brand brief draft with these sections, as markdown headings:
+${otherVoice ? "OTHER VOICE NOTES:\n" + otherVoice + "\n\n" : ""}Write the brand brief draft with these sections, as markdown headings:
 1. Positioning in one line
 2. Who he is for
 3. The story (turning point, in his words where possible)

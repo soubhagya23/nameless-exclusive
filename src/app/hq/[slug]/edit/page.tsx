@@ -10,8 +10,9 @@ export default async function EditClient({ params }: { params: Promise<{ slug: s
   if (!client) notFound();
   return (
     <div>
-      <h2 style={{ marginBottom: 20 }}>Edit {client.first_name}&apos;s page</h2>
-      <ClientForm clientId={client.id} initial={{ name: client.name, first_name: client.first_name, slug: client.slug, wa_number: client.wa_number || "", portrait_url: client.portrait_url || "", config: JSON.stringify(client.config, null, 2) }} />
+      <h2 style={{ marginBottom: 20 }}>Edit {client.first_name}</h2>
+      <p className="label" style={{ color: "var(--dim)", marginBottom: 20 }}>Name, link, portrait. The cards and prompts live on each round; edit those from his page in HQ.</p>
+      <ClientForm clientId={client.id} initial={{ name: client.name, first_name: client.first_name, slug: client.slug, wa_number: client.wa_number || "", portrait_url: client.portrait_url || "", area: client.config.area || "", akshayName: client.config.akshayName || "Akshay" }} />
     </div>
   );
 }
