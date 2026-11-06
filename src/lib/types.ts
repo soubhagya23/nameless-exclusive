@@ -1,4 +1,4 @@
-export type Card = { id: string; claim: string; why: string; clip?: string };
+export type Card = { id: string; claim: string; why: string; clip?: string; kind?: "claim" | "question" };
 export type Prompt = { q: string; h: string };
 
 /** What one shoot's questionnaire asks of the client. Lives on the round (= shoot). */

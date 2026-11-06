@@ -48,6 +48,7 @@ export default function Handshake({ client, shoot, shoots, initialAsks, initialA
   const [idx, setIdx] = useState(() => { const first = cards.findIndex((c) => !initialAnswers.some((a) => a.card_id === c.id)); return first === -1 ? 0 : first; });
   const [fixOpen, setFixOpen] = useState(false);
   const [fixText, setFixText] = useState("");
+  const [reviewing, setReviewing] = useState(false);
   const [cardRecId, setCardRecId] = useState<string | null>(null);
   const [cardRecUrl, setCardRecUrl] = useState<string | null>(null);
   const [recording, setRecording] = useState<"" | "card" | "drive" | "ask">("");
@@ -75,8 +76,11 @@ export default function Handshake({ client, shoot, shoots, initialAsks, initialA
   const toastTimer = useRef<number | null>(null);
   const liveIdxRef = useRef(0);
 
+  const answersRef = useRef(answers);
+  useEffect(() => { answersRef.current = answers; }, [answers]);
   const answered = useMemo(() => cards.filter((c) => answers[c.id]).length, [answers, cards]);
   const allDone = cards.length > 0 && answered >= cards.length;
+  const showDone = allDone && !reviewing;
   const driveRec = recs.find((r) => r.kind === "drive");
   const card = cards[idx];
   const openAsks = asks.filter((a) => a.status === "open");
@@ -106,13 +110,24 @@ export default function Handshake({ client, shoot, shoots, initialAsks, initialA
 
   function nextUnanswered(from: number, map: Record<string, Answer>) { for (let k = 1; k <= cards.length; k++) { const n = (from + k) % cards.length; if (!map[cards[n].id]) return n; } return from; }
 
-  async function answer(verdict: Verdict, note = "") {
-    const a: Answer = { card_id: card.id, verdict, note, recording_id: cardRecId };
-    const map = { ...answers, [card.id]: a };
-    setAnswers(map);
-    setFixOpen(false); setFixText(""); setCardRecId(null); setCardRecUrl(null);
-    setIdx(nextUnanswered(idx, map));
+  async function saveAnswer(cardId: string, verdict: Verdict, note: string, recording_id: string | null) {
+    const a: Answer = { card_id: cardId, verdict, note, recording_id };
+    const map = { ...answersRef.current, [cardId]: a };
+    answersRef.current = map; setAnswers(map);
     try { await post("card", a); } catch { say("Could not save that one. Check your connection."); }
+  }
+  /** Tap a verdict: saved at once, he stays on the card so he can add a voice note, then taps Next. */
+  function answer(verdict: Verdict, note = "") {
+    const prev = answers[card.id];
+    void saveAnswer(card.id, verdict, note || prev?.note || "", cardRecId || prev?.recording_id || null);
+    setFixOpen(false);
+  }
+  function goTo(k: number) { setIdx(Math.max(0, Math.min(cards.length - 1, k))); setFixOpen(false); setFixText(""); setCardRecId(null); setCardRecUrl(null); }
+  function next() {
+    const map = answersRef.current;
+    if (cards.every((c) => map[c.id])) { setReviewing(false); return; }
+    const n = nextUnanswered(idx, map);
+    goTo(n <= idx ? nextUnanswered(-1, map) : n);
   }
 
   async function toggleDay(label: string) {
@@ -164,6 +179,7 @@ export default function Handshake({ client, shoot, shoots, initialAsks, initialA
       const mr = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
       chunks.current = [];
       const forCard = card?.id;
+      const forCardKind = card?.kind || "claim";
       mr.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunks.current.push(e.data); };
       mr.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
@@ -174,7 +190,17 @@ export default function Handshake({ client, shoot, shoots, initialAsks, initialA
         if (wake.current) { try { await wake.current.release(); } catch {} wake.current = null; }
         if (secs < 2) return;
         const url = URL.createObjectURL(blob);
-        if (kind === "card") { setCardRecUrl(url); const id = await upload("fix", blob, secs, forCard || null); if (id) { setCardRecId(id); say("Got it. Now tap one of the three."); } }
+        if (kind === "card") {
+          setCardRecUrl(url);
+          const id = await upload("fix", blob, secs, forCard || null);
+          if (id && forCard) {
+            setCardRecId(id);
+            const prev = answersRef.current[forCard];
+            if (prev) { await saveAnswer(forCard, prev.verdict, prev.note, id); say("Attached. Tap Next when you are ready."); }
+            else if (forCardKind === "question") { await saveAnswer(forCard, "yes", "", id); say("Got it. Tap Next when you are ready."); }
+            else say("Got it. Now tap This is me or Not quite.");
+          }
+        }
         else if (kind === "ask") { const id = await upload("answer", blob, secs, askId || null); if (id && askId) { setAskRec((m) => ({ ...m, [askId]: { id, url } })); say("Got it. Press Send when you are ready."); } }
         else { setDriveUrl(url); const id = await upload("drive", blob, secs, null); if (id) say("Done. It is with us."); }
       };
@@ -290,46 +316,74 @@ export default function Handshake({ client, shoot, shoots, initialAsks, initialA
       {live && cards.length ? (
         <section className="band grey" id="cards">
           <div className="in">
-            <div className="head"><span className="label">{num()}</span><div><h2>Is this <span className="acc">you?</span></h2><p>{cfg.intro} Tap That is me, Not quite, or Do not use.</p></div></div>
-            {!allDone ? (
+            <div className="head"><span className="label">{num()}</span><div><h2>{shoot.number === 1 ? <>Is this <span className="acc">you?</span></> : <>Before shoot <span className="acc">{shoot.number}.</span></>}</h2><p>{cfg.intro}{cards.every((c) => c.kind === "question") ? " Any language." : cards.every((c) => (c.kind || "claim") === "claim") ? " Two taps per card. Add your voice if you want to." : ""}</p></div></div>
+            {!showDone ? (
               <div className="card">
                 <div className="meta">
-                  <span className="label">Card {String(idx + 1).padStart(2, "0")} of {cards.length}</span>
-                  <div className="dots">{cards.map((c, k) => <span key={c.id} className={`dot ${answers[c.id]?.verdict || ""} ${k === idx ? "cur" : ""}`} />)}</div>
+                  <span className="label">{card.kind === "question" ? "Question" : "Card"} {String(idx + 1).padStart(2, "0")} of {cards.length}</span>
+                  <div className="dots">{cards.map((c, k) => <button key={c.id} type="button" aria-label={`Card ${k + 1}`} className={`dot ${answers[c.id]?.verdict || ""} ${k === idx ? "cur" : ""}`} onClick={() => goTo(k)} />)}</div>
                 </div>
                 <p className="claim">{card.claim}</p>
                 <p className="why">{card.why}</p>
                 {card.clip ? <div className="clip"><audio controls preload="none" src={card.clip} /><span className="state">Hear {who} ask it</span></div> : null}
-                <div className="acts">
-                  <button className="btn" type="button" onClick={() => answer("yes")} disabled={uploading || recording === "card"}>That is me</button>
-                  <button className="btn ghost" type="button" onClick={() => setFixOpen(true)} disabled={uploading || recording === "card"}>Not quite</button>
-                  <button className="btn ghost" type="button" onClick={() => answer("skip")} disabled={uploading || recording === "card"}>Do not use</button>
-                </div>
-                <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginTop: 12 }}>
-                  <button className={`btn link recbtn ${recording === "card" ? "on" : ""}`} type="button" style={{ gap: 8 }} onClick={() => (recording === "card" ? stopRecording() : startRecording("card"))} disabled={uploading || (recording !== "" && recording !== "card")}>
-                    {recording === "card" ? `Stop · ${fmt(recSecs)}` : cardRecId ? "Say it again" : "Want to say something about this one?"}
-                  </button>
-                  {uploading && recording === "" ? <span className="state">Saving</span> : null}
-                  {cardRecUrl && !uploading ? <span className="state">Voice note attached. Now tap one of the three.</span> : null}
-                </div>
-                {cardRecUrl ? <audio controls preload="metadata" src={cardRecUrl} style={{ marginTop: 8 }} /> : null}
-                {fixOpen ? (
-                  <div className="fix">
-                    <span className="label" style={{ color: "var(--ink)" }}>What is off? One line, any language. Or use the voice note above.</span>
-                    <div className="row">
-                      <input type="text" value={fixText} onChange={(e) => setFixText(e.target.value)} placeholder="One line is enough" maxLength={240} />
-                      <button className="btn" type="button" onClick={() => answer("no", fixText.trim())} disabled={uploading || recording !== ""}>Save</button>
-                    </div>
-                    <button className="btn link" type="button" style={{ justifySelf: "start" }} onClick={() => setFixOpen(false)}>Back</button>
-                  </div>
-                ) : null}
+                {(() => {
+                  const cur = answers[card.id];
+                  const isQ = card.kind === "question";
+                  const hasVoice = !!(cardRecId || cur?.recording_id);
+                  const busy = uploading || recording === "card";
+                  return (
+                    <>
+                      {isQ ? (
+                        <div className="acts two">
+                          <button className={`btn recbtn ${recording === "card" ? "on" : ""}`} type="button" onClick={() => (recording === "card" ? stopRecording() : startRecording("card"))} disabled={uploading || (recording !== "" && recording !== "card")}>
+                            {recording === "card" ? `Stop · ${fmt(recSecs)}` : hasVoice ? "Say it again" : "Answer with your voice"}
+                          </button>
+                          {cur ? <button className="btn ghost" type="button" onClick={next} disabled={busy}>Next</button> : <button className="btn ghost" type="button" onClick={() => { answer("skip"); }} disabled={busy}>Skip this one</button>}
+                        </div>
+                      ) : (
+                        <div className="acts two">
+                          <button className={`btn ${cur && cur.verdict !== "yes" ? "ghost" : ""}`} type="button" onClick={() => answer("yes")} disabled={busy}>{cur?.verdict === "yes" ? "This is me ✓" : "This is me"}</button>
+                          <button className={`btn ${cur?.verdict === "no" || cur?.verdict === "skip" ? "" : "ghost"}`} type="button" onClick={() => answer("no")} disabled={busy}>{cur?.verdict === "no" || cur?.verdict === "skip" ? "Not quite ✓" : "Not quite"}</button>
+                        </div>
+                      )}
+                      {cur || hasVoice || recording === "card" ? (
+                        <div className="after">
+                          {!isQ ? (
+                            <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                              <button className={`btn link recbtn ${recording === "card" ? "on" : ""}`} type="button" style={{ gap: 8 }} onClick={() => (recording === "card" ? stopRecording() : startRecording("card"))} disabled={uploading || (recording !== "" && recording !== "card")}>
+                                {recording === "card" ? `Stop · ${fmt(recSecs)}` : hasVoice ? "Say it again" : "Want to add something? Say it"}
+                              </button>
+                              {!fixOpen && !recording ? <button className="btn link" type="button" onClick={() => { setFixOpen(true); setFixText(cur?.note || ""); }}>Or type a line</button> : null}
+                              {uploading && recording === "" ? <span className="state">Saving</span> : null}
+                              {hasVoice && !uploading && recording === "" ? <span className="state">Voice note attached</span> : null}
+                            </div>
+                          ) : (uploading && recording === "" ? <span className="state">Saving</span> : hasVoice && recording === "" ? <span className="state">Voice note attached</span> : null)}
+                          {cardRecUrl ? <audio controls preload="metadata" src={cardRecUrl} style={{ marginTop: 8 }} /> : null}
+                          {fixOpen ? (
+                            <div className="fix">
+                              <div className="row">
+                                <input type="text" value={fixText} onChange={(e) => setFixText(e.target.value)} placeholder="One line, any language" maxLength={240} autoFocus />
+                                <button className="btn" type="button" onClick={() => { answer(cur?.verdict || "no", fixText.trim()); say("Saved."); }} disabled={busy}>Save</button>
+                              </div>
+                            </div>
+                          ) : null}
+                          {cur?.note && !fixOpen ? <p className="state" style={{ marginTop: 8 }}>You said: “{cur.note}”</p> : null}
+                        </div>
+                      ) : null}
+                      <div className="navrow">
+                        <button className="btn link" type="button" onClick={() => goTo(idx - 1)} disabled={idx === 0 || busy}>Back</button>
+                        {cur && !isQ ? <button className="btn" type="button" onClick={next} disabled={busy}>{answered >= cards.length ? "Done" : "Next"}</button> : <span />}
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             ) : (
               <div className="done">
                 <h3>Cards <span className="acc">done.</span></h3>
                 <p>All {cards.length} are with us.{prompts.length && !driveRec ? " Next, ten minutes on your next drive." : photosNeeded.length ? " One more thing: a photo or two." : ""}</p>
                 {prompts.length && !driveRec ? <a className="btn" href="#drive">Go to the drive</a> : photosNeeded.length ? <a className="btn" href="#photos">Send photos</a> : null}
-                <button className="btn link" type="button" style={{ marginLeft: 16 }} onClick={() => { setIdx(0); setAnswers({}); }}>Go back through the cards</button>
+                <button className="btn link" type="button" style={{ marginLeft: 16 }} onClick={() => { setReviewing(true); goTo(0); }}>Go back through the cards</button>
               </div>
             )}
           </div>

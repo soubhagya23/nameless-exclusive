@@ -113,9 +113,9 @@ export default async function ClientDetail({ params, searchParams }: { params: P
                   const voice = a?.recording_id ? recordings.find((r) => r.id === a.recording_id) : null;
                   return (
                     <div key={c.id}>
-                      <span>{a ? <span className={`pill ${a.verdict}`}>{a.verdict === "yes" ? "That is me" : a.verdict === "no" ? "Not quite" : "Do not use"}</span> : <span className="pill skip">waiting</span>}</span>
+                      <span>{a ? <span className={`pill ${a.verdict}`}>{c.kind === "question" ? (a.verdict === "skip" ? "skipped" : "answered") : a.verdict === "yes" ? "This is me" : a.verdict === "no" ? "Not quite" : "Do not use"}</span> : <span className="pill skip">waiting</span>}</span>
                       <div>
-                        <div style={{ color: "var(--ink)" }}>{c.claim}</div>
+                        <div style={{ color: "var(--ink)" }}>{c.kind === "question" ? <span className="label" style={{ color: "var(--dim)", marginRight: 6 }}>Q</span> : null}{c.claim}</div>
                         {a?.note ? <div style={{ marginTop: 4 }}>“{a.note}”</div> : null}
                         {voice ? (
                           <div style={{ marginTop: 8 }}>

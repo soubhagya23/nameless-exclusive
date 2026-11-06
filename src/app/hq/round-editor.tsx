@@ -35,20 +35,26 @@ export default function RoundEditor({ initial }: { initial: RoundConfig }) {
           <h3 style={{ margin: 0 }}>Cards · {cfg.cards.length}</h3>
           <button className="btn small" type="button" onClick={addCard}>Add a card</button>
         </div>
-        <p style={{ fontSize: 14, marginBottom: 14 }}>One line of the story each. He taps That is me, Not quite, or Do not use. Keep the claim under 25 words.</p>
+        <p style={{ fontSize: 14, marginBottom: 14 }}>Two kinds. A statement he taps This is me or Not quite on, with a voice note if he wants. Or a question he answers in his voice. Keep each under 25 words.</p>
         <div style={{ display: "grid", gap: 10 }}>
           {cfg.cards.map((c, i) => (
             <div key={i} className="form" style={{ border: "1px solid var(--line)", padding: 14, background: "var(--grey)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <span className="label" style={{ color: "var(--dim)" }}>Card {String(i + 1).padStart(2, "0")} · id <code style={{ fontFamily: "inherit" }}>{c.id}</code></span>
+                <span className="label" style={{ color: "var(--dim)", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                  <span>Card {String(i + 1).padStart(2, "0")} · id <code style={{ fontFamily: "inherit" }}>{c.id}</code></span>
+                  <span style={{ display: "inline-flex", border: "1px solid var(--line)" }}>
+                    <button type="button" className="btn small" style={{ background: c.kind === "question" ? "transparent" : "var(--ink)", color: c.kind === "question" ? "var(--ink)" : "#fff", border: 0 }} onClick={() => setCard(i, { kind: undefined })}>Statement</button>
+                    <button type="button" className="btn small" style={{ background: c.kind === "question" ? "var(--ink)" : "transparent", color: c.kind === "question" ? "#fff" : "var(--ink)", border: 0 }} onClick={() => setCard(i, { kind: "question" })}>Question</button>
+                  </span>
+                </span>
                 <span style={{ display: "flex", gap: 6 }}>
                   <button className="btn small ghost" type="button" onClick={() => set({ cards: move(cfg.cards, i, -1) })} disabled={i === 0}>Up</button>
                   <button className="btn small ghost" type="button" onClick={() => set({ cards: move(cfg.cards, i, 1) })} disabled={i === cfg.cards.length - 1}>Down</button>
                   <button className="btn small ghost" type="button" onClick={() => set({ cards: cfg.cards.filter((_, k) => k !== i) })}>Remove</button>
                 </span>
               </div>
-              <label>The claim<input value={c.claim} onChange={(e) => setCard(i, { claim: e.target.value, id: c.id.startsWith("card-") && !c.clip ? slugify(e.target.value).split("-").slice(0, 3).join("-") || c.id : c.id })} placeholder="Six months from now, when someone in the West talks real estate, your name comes up first." /></label>
-              <label>Why it matters (small line under it)<input value={c.why} onChange={(e) => setCard(i, { why: e.target.value })} placeholder="That is the whole job. Recall, then trust." /></label>
+              <label>{c.kind === "question" ? "The question" : "The claim"}<input value={c.claim} onChange={(e) => setCard(i, { claim: e.target.value, id: c.id.startsWith("card-") && !c.clip ? slugify(e.target.value).split("-").slice(0, 3).join("-") || c.id : c.id })} placeholder={c.kind === "question" ? "Walk us through a normal working day, start to finish." : "Six months from now, when someone in the West talks real estate, your name comes up first."} /></label>
+              <label>{c.kind === "question" ? "A nudge under it" : "Why it matters (small line under it)"}<input value={c.why} onChange={(e) => setCard(i, { why: e.target.value })} placeholder={c.kind === "question" ? "Where you are at 7, at 11, at 4. Where the day actually goes." : "That is the whole job. Recall, then trust."} /></label>
               <label>Akshay asking it, audio URL (optional)<input value={c.clip || ""} onChange={(e) => setCard(i, { clip: e.target.value })} placeholder="https://thenameless.studio/wp-content/uploads/…/card-name.m4a" /></label>
             </div>
           ))}

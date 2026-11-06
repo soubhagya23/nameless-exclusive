@@ -19,7 +19,7 @@ async function guard() {
 
 function cleanConfig(raw: unknown): RoundConfig {
   const c = (raw || {}) as Partial<RoundConfig>;
-  const cards = (Array.isArray(c.cards) ? c.cards : []).map((x) => ({ id: String(x.id || "").trim(), claim: String(x.claim || "").trim(), why: String(x.why || "").trim(), clip: String(x.clip || "").trim() || undefined })).filter((x) => x.id && x.claim);
+  const cards = (Array.isArray(c.cards) ? c.cards : []).map((x) => ({ id: String(x.id || "").trim(), claim: String(x.claim || "").trim(), why: String(x.why || "").trim(), clip: String(x.clip || "").trim() || undefined, kind: x.kind === "question" ? ("question" as const) : undefined })).filter((x) => x.id && x.claim);
   const prompts = (Array.isArray(c.prompts) ? c.prompts : []).map((x) => ({ q: String(x.q || "").trim(), h: String(x.h || "").trim() })).filter((x) => x.q);
   const shootOptions = (Array.isArray(c.shootOptions) ? c.shootOptions : []).map((x) => String(x).trim()).filter(Boolean);
   const photoAsks = (Array.isArray(c.photoAsks) ? c.photoAsks : []).map((x) => String(x).trim()).filter(Boolean);

@@ -26,7 +26,7 @@ export async function draftNextShoot(clientId: string, shootNumber: number): Pro
   const brief = briefs[0]?.edited_content || briefs[0]?.content || "";
   const qa = asks.filter((a) => a.status === "answered").map((a) => { const rec = a.recording_id ? recordings.find((x) => x.id === a.recording_id) : null; return `Q: ${a.question}\nA: ${a.answer_text}${rec?.transcript ? " / voice: " + rec.transcript : ""}`; }).join("\n");
 
-  const system = `You write questionnaires for NAMELESS, a personal brand advisory in Melbourne. The client is a busy real estate agent who hates forms. Every card is a one-line statement in plain English (under 22 words) he can tap "That is me", "Not quite" or "Do not use". Never ask him to write. No em dashes, no exclamation marks, no emoji, no buzzwords, no "not X but Y". Use only facts in the material; where you need something new, phrase it as a specific statement he can confirm or correct, never a vague question. Output JSON only.`;
+  const system = `You write questionnaires for NAMELESS, a personal brand advisory in Melbourne. The client is a busy real estate agent who hates forms. Each card is either a one-line statement in plain English (under 22 words) he taps "This is me" or "Not quite" on, or a question (kind "question") he answers with his voice, under 18 words. The first card is always a question about his day in the week of the shoot. Never ask him to write. No em dashes, no exclamation marks, no emoji, no buzzwords, no "not X but Y". Use only facts in the material; where you need something new, phrase it as a specific statement he can confirm or correct, never a vague question. Output JSON only.`;
 
   const user = `Client: ${client.name}${client.config.area ? ", " + client.config.area : ""}.
 We are planning SHOOT ${shootNumber}. Write its questionnaire.
@@ -42,8 +42,8 @@ Return JSON with exactly this shape:
 {
   "lede": "one line under his name, max 25 words, tells him this is for shoot ${shootNumber} and how long it takes",
   "intro": "one line above the cards, max 20 words",
-  "cards": [ { "id": "kebab-id", "claim": "statement", "why": "small line under it, max 14 words" } ],   // 5 to 8 cards: what we plan to film, who is on camera, where, what changed since last shoot, what he wants more or less of
-  "prompts": [ { "q": "drive prompt, max 10 words", "h": "nudge, max 20 words" } ],   // 2 to 4 prompts for a continuous voice recording in the car
+  "cards": [ { "id": "kebab-id", "kind": "question" | "claim", "claim": "the question or the statement", "why": "small line under it, max 14 words" } ],   // 5 to 8 cards: what we plan to film, who is on camera, where, what changed since last shoot, what he wants more or less of
+  "prompts": [ { "q": "drive prompt, max 10 words", "h": "nudge, max 20 words" } ],   // always [] on shoot 2 and 3: the questions go in the cards, there is no drive section
   "photoAsks": [ "A photo of ..." ]   // 1 to 3 things we need to see before the shoot
 }`;
 
@@ -66,7 +66,7 @@ Return JSON with exactly this shape:
   const json = text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1);
   let parsed: Partial<RoundConfig>;
   try { parsed = JSON.parse(json); } catch { throw new Error("The draft came back malformed. Try again."); }
-  const cards = (Array.isArray(parsed.cards) ? parsed.cards : []).map((c, i) => ({ id: String(c.id || `card-${i + 1}`).toLowerCase().replace(/[^a-z0-9-]/g, "-"), claim: String(c.claim || "").trim(), why: String(c.why || "").trim() })).filter((c) => c.claim);
+  const cards = (Array.isArray(parsed.cards) ? parsed.cards : []).map((c, i) => ({ id: String(c.id || `card-${i + 1}`).toLowerCase().replace(/[^a-z0-9-]/g, "-"), claim: String(c.claim || "").trim(), why: String(c.why || "").trim(), kind: c.kind === "question" ? ("question" as const) : undefined })).filter((c) => c.claim);
   if (cards.length < 3) throw new Error("The draft came back too thin. Try again.");
   return {
     ...followUpRound,

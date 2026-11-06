@@ -44,10 +44,10 @@ a.btn { color: #fff; }
 @media (max-width: 560px) { .head { grid-template-columns: 1fr; gap: 6px; } }
 .card { background: #fff; padding: 28px 24px 24px; border: 1px solid var(--ink); }
 .card .meta { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; } .card .meta .label { color: var(--dim); }
-.dots { display: flex; gap: 4px; flex-wrap: wrap; } .dot { width: 14px; height: 4px; background: var(--line); } .dot.yes { background: var(--ink); } .dot.no { background: var(--red); } .dot.skip { background: #b5b5b5; } .dot.cur { outline: 1px solid var(--ink); outline-offset: 2px; }
+.dots { display: flex; gap: 4px; flex-wrap: wrap; } .dot { width: 14px; height: 4px; background: var(--line); border: 0; padding: 0; cursor: pointer; } .dot.yes { background: var(--ink); } .dot.no { background: var(--red); } .dot.skip { background: #b5b5b5; } .dot.cur { outline: 1px solid var(--ink); outline-offset: 2px; }
 .claim { font-family: var(--fh); font-size: clamp(26px, 4.4vw, 38px); line-height: 1.08; letter-spacing: -0.04em; color: var(--ink); text-wrap: balance; }
 .why { margin-top: 12px; color: var(--text); } .clip { margin-top: 14px; }
-.acts { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 24px; } @media (max-width: 560px) { .acts { grid-template-columns: 1fr; } } .acts .btn { width: 100%; padding-inline: 10px; }
+.acts { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 24px; } .acts.two { grid-template-columns: 1fr 1fr; } .after { margin-top: 14px; } .navrow { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; gap: 10px; } @media (max-width: 560px) { .acts { grid-template-columns: 1fr; } } .acts .btn { width: 100%; padding-inline: 10px; }
 .fix { margin-top: 14px; padding: 16px; background: var(--grey); display: grid; gap: 10px; } .fix .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .fix input { flex: 1; min-width: 200px; border: 1px solid var(--line); border-radius: 0; padding: 12px 14px; font: inherit; font-size: 16px; color: var(--ink); background: #fff; }
 .recbtn::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--red); }

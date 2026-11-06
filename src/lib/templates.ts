@@ -112,21 +112,20 @@ export const akshayRound: RoundConfig = {
 
 /** Starting point for shoot 2 and 3 when the AI draft is not used. Short: what changed, what to film next. */
 export const followUpRound: RoundConfig = {
-  lede: "The last shoot is in. A few quick checks before the next one, so we film the right things.",
-  intro: "Tap through. Anything you are not sure about, say it in a voice note.",
+  lede: "The last shoot is in. A few quick things before the next one, so we film the right day.",
+  intro: "Questions first, in your voice. Then a few cards to tap.",
   secondsPerPrompt: 60,
   cards: [
+    { id: "day", kind: "question", claim: "Walk us through a normal working day in the week of the shoot, start to finish.", why: "Where you are at 7, at 11, at 4, at 8. Where the day actually goes. We plan the shoot around it." },
+    { id: "moments", kind: "question", claim: "What is coming up in the next two weeks that we should film?", why: "An inspection, an auction, a handover, a meeting. Dates if you know them." },
+    { id: "feedback", kind: "question", claim: "What did people say about the reels so far?", why: "Clients, friends, other agents. The exact words if you remember them." },
+    { id: "more-less", kind: "question", claim: "What do you want more of, and less of, next time?", why: "Be blunt. This is how the next shoot gets better." },
     { id: "feel", claim: "The reels so far feel like you, not like an ad.", why: "If they do not, we change the direction, not the volume." },
     { id: "comfort", claim: "You are more comfortable on camera than on the first shoot day.", why: "We push a little further each time, never a lot." },
-    { id: "next-listing", claim: "There is at least one listing we can film at next time.", why: "Keys, light, a walkthrough." },
+    { id: "next-listing", claim: "There is at least one listing we can film at next time.", why: "Keys, light, a walkthrough. Send a photo below." },
     { id: "client-on-camera", claim: "A happy client would be fine saying a few words on camera.", why: "Two sentences is enough. We ask them, not you." },
-    { id: "topic", claim: "There is one thing you keep explaining to buyers that we should turn into a series.", why: "Say what it is in a voice note." },
   ],
-  prompts: [
-    { q: "What people said about the reels so far.", h: "Clients, friends, other agents. The exact words if you remember them." },
-    { q: "One moment since the last shoot that should have been filmed.", h: "A negotiation, a handover, a surprise. What happened." },
-    { q: "What you want more of, and less of, next time.", h: "Be blunt. This is how the next shoot gets better." },
-  ],
+  prompts: [],
   shootOptions: [],
   photoAsks: ["A photo of the listing for this shoot"],
 };

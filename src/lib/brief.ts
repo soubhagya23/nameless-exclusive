@@ -15,9 +15,9 @@ export async function generateBrief(clientId: string): Promise<string> {
   const roundBlocks = rounds.slice().reverse().map((rd) => {
     const cardLines = rd.config.cards.map((c) => {
       const a = answers.find((x) => x.card_id === c.id && x.round_id === rd.id);
-      const v = !a ? "not answered" : a.verdict === "yes" ? "THAT IS ME" : a.verdict === "no" ? `NOT QUITE${a.note ? ": " + a.note : ""}` : "DO NOT USE";
+      const v = !a ? "not answered" : c.kind === "question" ? (a.verdict === "skip" ? "skipped" : `answered${a.note ? ": " + a.note : ""}`) : a.verdict === "yes" ? "THIS IS ME" : a.verdict === "no" ? `NOT QUITE${a.note ? ": " + a.note : ""}` : "DO NOT USE";
       const fix = a?.recording_id ? recordings.find((r) => r.id === a.recording_id) : null;
-      return `- "${c.claim}" → ${v}${fix?.transcript ? `\n  Voice note on this card: ${fix.transcript}` : ""}`;
+      return `- "${c.claim}" → ${v}${fix?.transcript ? `\n  ${c.kind === "question" ? "His answer" : "Voice note on this card"}: ${fix.transcript}` : ""}`;
     });
     const drive = recordings.filter((r) => r.kind === "drive" && r.round_id === rd.id && r.transcript).map((r) => r.transcript).join("\n\n");
     return `ROUND ${rd.number}: ${rd.title}${rd.shoot_date ? ` (shoot day ${rd.shoot_date})` : ""}\nCards:\n${cardLines.join("\n")}\nDrive prompts: ${rd.config.prompts.map((p) => p.q).join(" / ") || "none"}\nDrive transcript:\n${drive || "(none yet)"}`;
