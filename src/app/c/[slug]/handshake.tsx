@@ -341,7 +341,7 @@ export default function Handshake({ client, shoot, shoots, initialAsks, initialA
           <div className="in">
             {prompts.length ? (
               <>
-                <div className="head"><span className="label">{num()}</span><div><h2>Drive and <span className="acc">talk.</span></h2><p style={{ color: "var(--dim)" }}>Next time you are in the car, press Start the drive, put the phone in the cradle, and talk. We show you one thing to talk about at a time and move on by ourselves. One recording, no stopping and starting. Hindi, Punjabi, English or a mix, whatever comes out.</p></div></div>
+                <div className="head"><span className="label">{num()}</span><div><h2>Drive and <span className="acc">talk.</span></h2><p style={{ color: "var(--dim)" }}>Next time you are in the car, press Start the drive, put the phone in the cradle, and talk. We show you one thing to talk about at a time and move on by ourselves. One recording, no stopping and starting. Hindi, Punjabi, English or a mix, whatever comes out. Leave out client names, addresses and sale prices. If something is for our ears only, say background only and we keep it that way.</p></div></div>
                 <div className="drive">
                   <div className="prompts">{prompts.map((p, k) => <span key={k}><b>{k + 1}. </b>{p.q}</span>)}</div>
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>

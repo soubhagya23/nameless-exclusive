@@ -8,7 +8,7 @@ import { generateBrief } from "@/lib/brief";
 import { transcribeRecording } from "@/lib/transcribe";
 import { draftNextShoot } from "@/lib/draft";
 import { getRound, listRounds, logEvent } from "@/lib/db";
-import { followUpRound } from "@/lib/templates";
+import { followUpRound, defaultRound, jatinRound } from "@/lib/templates";
 import type { RoundConfig, ShootPlan } from "@/lib/types";
 
 async function guard() {
@@ -106,6 +106,20 @@ export async function actionRedraft(roundId: string, slug: string) {
   const config = await draftNextShoot(round.client_id, round.number);
   await supabaseAdmin().from("rounds").update({ config }).eq("id", roundId);
   revalidatePath(`/hq/${slug}/rounds/${roundId}`);
+}
+
+/** Shoot 1 only: replace the questions with the questionnaire set (Jatin's for jatin, the house set otherwise). Answers stay attached by card id. */
+export async function actionLoadQuestionnaire(roundId: string, slug: string) {
+  await guard();
+  const round = await getRound(roundId);
+  if (!round || round.number !== 1) throw new Error("only shoot 1 has a questionnaire set");
+  const base = slug === "jatin" ? jatinRound : defaultRound;
+  const cur = round.config as Partial<RoundConfig>;
+  const config: RoundConfig = { ...base, shootOptions: cur.shootOptions?.length ? cur.shootOptions : base.shootOptions };
+  await supabaseAdmin().from("rounds").update({ config }).eq("id", roundId);
+  await logEvent(round.client_id, "shoot_drafted", { shoot: round.number, how: "questionnaire" });
+  revalidatePath(`/hq/${slug}/rounds/${roundId}`);
+  revalidatePath(`/c/${slug}`);
 }
 
 /** Send: the shoot goes live on his page. Other live shoots close. */
