@@ -5,7 +5,7 @@ Everything below is a one-time job. About twenty minutes. Do it in order.
 ## 1. Supabase (database, storage, HQ login)
 
 1. supabase.com → New project. Name `nameless`, region Sydney. Save the database password somewhere safe (you will not need it day to day).
-2. When it is ready: **SQL Editor → New query**. Open `supabase/schema.sql` from this repo, paste everything, **Run**. Then do the same with every file in `supabase/migrations/`, in number order (002, 003, 004, 005). Together they create the tables, the rounds model and the private `recordings` bucket.
+2. When it is ready: **SQL Editor → New query**. Open `supabase/schema.sql` from this repo, paste everything, **Run**. Then do the same with every file in `supabase/migrations/`, in number order (002, 003, 004, 005; 006 is optional, it adds a test client). Together they create the tables, the rounds model and the private `recordings` bucket.
 3. **Authentication → URL Configuration**:
    - Site URL: `https://hq.thenameless.studio`
    - Redirect URLs, add both: `https://hq.thenameless.studio/auth/callback` and `https://*.vercel.app/auth/callback`

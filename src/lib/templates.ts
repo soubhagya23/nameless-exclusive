@@ -72,6 +72,15 @@ export const jatinRound: RoundConfig = {
   photoAsks: ["A photo of a listing we could film at", "A photo of your desk at the Truganina office"],
 };
 
+/** Akshay's test client. The house set with a lede that says it is a test. No facts about Akshay invented. */
+export const akshayDemoRound: RoundConfig = {
+  ...defaultRound,
+  lede: "This one is the test run. Tap through it the way a client would, record a short drive, send a photo, and break whatever you can.",
+  intro: "Each card is one line of a story. Nothing here is real yet, it is the house set a new client would start from.",
+  shootOptions: ["Sat 15 Nov", "Tue 18 Nov", "Sat 22 Nov"],
+  photoAsks: ["Any photo, just to test the drop"],
+};
+
 /** Starting point for shoot 2 and 3 when the AI draft is not used. Short: what changed, what to film next. */
 export const followUpRound: RoundConfig = {
   lede: "The last shoot is in. A few quick checks before the next one, so we film the right things.",
