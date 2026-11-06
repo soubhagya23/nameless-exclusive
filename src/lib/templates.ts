@@ -72,13 +72,42 @@ export const jatinRound: RoundConfig = {
   photoAsks: ["A photo of a listing we could film at", "A photo of your desk at the Truganina office"],
 };
 
-/** Akshay's test client. The house set with a lede that says it is a test. No facts about Akshay invented. */
-export const akshayDemoRound: RoundConfig = {
-  ...defaultRound,
-  lede: "This one is the test run. Tap through it the way a client would, record a short drive, send a photo, and break whatever you can.",
-  intro: "Each card is one line of a story. Nothing here is real yet, it is the house set a new client would start from.",
+/**
+ * Akshay's own personal brand, shoot 1. Built only from what he has already told Soubh:
+ * founder building in public, the operator to brand-builder storyline, raw and premium, Hinglish, no guru energy.
+ * Nothing here is an invented fact. Numbers stay out until he gives them.
+ */
+export const akshayRound: RoundConfig = {
+  lede: "You have sat on the other side of this table for Jatin. Your turn. Thumbs only, no typing.",
+  intro: "Each card is one line of the story we would build from what you have already told me. Nothing public yet, and a yes on a card is not a yes to post it.",
+  secondsPerPrompt: 75,
+  cards: [
+    { id: "name", claim: "Six months from now, people know you as the founder who builds businesses and turns them into brands people actually notice.", why: "Not a guru, not a coach, not a business page. A founder building in public. If there is something else you want people to remember, say it on the mic." },
+    { id: "who", claim: "This is for young founders, business owners, ambitious Indians in Australia and overseas, and people building something of their own.", why: "Not only marketers. If you know who you most want watching, say it in a voice note." },
+    { id: "start", claim: "The story starts in the store. India, Dubai, Melbourne, then years doing everything yourself at 30 Minutes Fix.", why: "Repairs, customers, staff, new locations. That is the proof you can build an operating business. The turning point itself, you tell us on the drive." },
+    { id: "chapter", claim: "The storyline is the transition. Operator inside the store, to founder building products, brands and a studio.", why: "Every month of content documents where that is up to. This is the spine of the whole thing." },
+    { id: "proof", claim: "Three proofs, three businesses. 30 Minutes Fix shows you can run one, Dropshieldz shows you can build a product brand, the studio shows you can build brands for others.", why: "Only what is true. No invented numbers, ever. When you want figures on screen, you give them." },
+    { id: "unfinished", claim: "You do not have it figured out, and the content says so. Decisions, money pressure, mistakes, wins, uncertainty.", why: "The journey is the content. The moment it looks finished, it stops being interesting." },
+    { id: "pov", claim: "People come away thinking this guy understands branding, without you ever claiming it. And you have opinions and say them.", why: "Business, employees, money, customer service, building in Australia, the immigrant journey. Not every post teaches. Some just make people think." },
+    { id: "voice", claim: "You talk simple. English with Hindi mixed in, short sentences, slightly imperfect is fine.", why: "No polished corporate English. If a caption sounds like an agency wrote it, it is wrong. A few phrases you actually use, on the mic." },
+    { id: "style", claim: "Raw and premium. Real phone footage, cinematic B-roll, voiceover, strong sound, clean type, good pacing.", why: "Raw because it is real, premium because the edit is good. Never raw because it is cheap." },
+    { id: "visual", claim: "No Canva look, no black and gold, no AI luxury moodboards, no serif on everything, no templated carousels.", why: "Editorial, documentary, fashion-campaign influence, film grain where it earns it. Designed by people who get culture." },
+    { id: "life", claim: "Life shows up. Family, travel, cars, gym, cafes, work days, quiet days, stress. Never as a flex.", why: "Success stays in the background. And not every life moment becomes business content. The roka was a moment, not a case study." },
+    { id: "role", claim: "On camera you are the founder and creative director, not the editor. You see it, direct it, make the call, appear in it. The team executes.", why: "Your time goes to decisions and relationships, not to timelines." },
+    { id: "objective", claim: "Attention, then trust, then reputation, then opportunities. The audience should never feel sold to.", why: "Studio clients, partnerships, podcasts and deals come from reputation, not from pitches in captions." },
+    { id: "family", claim: "Family and the relationship appear on your terms, moment by moment. Nothing goes up without a yes from you.", why: "Off limits by default. You choose each one. Say on the last drive prompt what is always out." },
+  ],
+  prompts: [
+    { q: "The day you decided to step out of the store.", h: "What you were doing, what you were tired of, what you wanted instead. How it still shows up in how you work." },
+    { q: "A decision at 30 Minutes Fix that got hard.", h: "A location, a hire, a bad month. What was at stake, what you did, what happened. Something you could not control." },
+    { q: "What most business owners get wrong about branding.", h: "Say it the way you would to a friend over coffee, not to a camera." },
+    { q: "The Dropshieldz story so far.", h: "Why you started it, what is scary about it, where it is up to this week." },
+    { q: "The studio, in your words.", h: "Why no name. Who it is for. What you refuse to do." },
+    { q: "Optional. India, Dubai, Melbourne. One moment from the move that explains you.", h: "Belonging, ambition, being new somewhere. Leave it out if it feels too personal. Tap Next to skip." },
+    { q: "What should stay private.", h: "People, money, history, filming situations you do not want. Say background only for anything we hear but never use." },
+  ],
   shootOptions: ["Sat 15 Nov", "Tue 18 Nov", "Sat 22 Nov"],
-  photoAsks: ["Any photo, just to test the drop"],
+  photoAsks: ["A photo from inside one of the stores, any one", "Your desk, or wherever you actually work now"],
 };
 
 /** Starting point for shoot 2 and 3 when the AI draft is not used. Short: what changed, what to film next. */

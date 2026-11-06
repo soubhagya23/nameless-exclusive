@@ -8,7 +8,7 @@ import { generateBrief } from "@/lib/brief";
 import { transcribeRecording } from "@/lib/transcribe";
 import { draftNextShoot } from "@/lib/draft";
 import { getRound, listRounds, logEvent } from "@/lib/db";
-import { followUpRound, defaultRound, jatinRound } from "@/lib/templates";
+import { followUpRound, defaultRound, jatinRound, akshayRound } from "@/lib/templates";
 import type { RoundConfig, ShootPlan } from "@/lib/types";
 
 async function guard() {
@@ -113,7 +113,7 @@ export async function actionLoadQuestionnaire(roundId: string, slug: string) {
   await guard();
   const round = await getRound(roundId);
   if (!round || round.number !== 1) throw new Error("only shoot 1 has a questionnaire set");
-  const base = slug === "jatin" ? jatinRound : defaultRound;
+  const base = slug === "jatin" ? jatinRound : slug === "akshay" ? akshayRound : defaultRound;
   const cur = round.config as Partial<RoundConfig>;
   const config: RoundConfig = { ...base, shootOptions: cur.shootOptions?.length ? cur.shootOptions : base.shootOptions };
   await supabaseAdmin().from("rounds").update({ config }).eq("id", roundId);
