@@ -34,14 +34,14 @@ export default function ClientForm({ clientId, initial, round }: { clientId: str
       </div>
       {round ? (
         <div>
-          <h3 style={{ marginBottom: 10 }}>Shoot 1 questions (the handshake)</h3>
-          <RoundEditor initial={round} />
+          <h3 style={{ marginBottom: 10 }}>The questionnaire (goes out once, when he is onboarded)</h3>
+          <RoundEditor initial={round} kind="questionnaire" />
         </div>
       ) : null}
       {err ? <div className="notice err">{err}</div> : null}
       <div className="actions" style={{ display: "flex", gap: 10, alignItems: "center" }}>
         <button className="btn" type="submit" disabled={busy}>{busy ? "Saving" : clientId ? "Save changes" : "Create client"}</button>
-        {!clientId ? <span className="label" style={{ color: "var(--dim)" }}>Nothing goes to him until you press Send on his HQ page.</span> : null}
+        {!clientId ? <span className="label" style={{ color: "var(--dim)" }}>Nothing goes to him until you press Send on his HQ page. Shoot 1 is drafted for you at the same time.</span> : null}
       </div>
     </form>
   );

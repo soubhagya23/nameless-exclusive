@@ -1,6 +1,6 @@
 import { supabaseAdmin } from "./supabase-admin";
 import type { Client, CardAnswer, Recording, Brief, Round, RoundConfig, Ask, Photo, Event, ShootPlan, ShootStage } from "./types";
-import { defaultRound } from "./templates";
+import { defaultQuestionnaire } from "./templates";
 
 export async function getClientBySlug(slug: string): Promise<Client | null> {
   const { data } = await supabaseAdmin().from("clients").select("*").eq("slug", slug).maybeSingle();
@@ -27,13 +27,21 @@ export async function getRound(id: string): Promise<Round | null> {
   return data ? normaliseRound(data) : null;
 }
 
+/** The onboarding questionnaire round (number 0), if the client has one. */
+export function questionnaireOf(rounds: Round[]): Round | null {
+  return rounds.find((r) => r.kind === "questionnaire") || null;
+}
+export function shootsOf(rounds: Round[]): Round[] {
+  return rounds.filter((r) => r.kind === "shoot");
+}
+
 /** The shoot the client's page is about right now: the live one, else the latest with a plan sent, else the latest. */
-export async function getCurrentRound(clientId: string): Promise<Round | null> {
-  const rounds = await listRounds(clientId);
-  const live = rounds.find((r) => r.status === "live");
+export function currentShootOf(rounds: Round[]): Round | null {
+  const shoots = shootsOf(rounds);
+  const live = shoots.find((r) => r.status === "live");
   if (live) return live;
-  const planned = [...rounds].reverse().find((r) => r.plan_status !== "none" && r.status !== "done");
-  return planned || rounds[rounds.length - 1] || null;
+  const planned = [...shoots].reverse().find((r) => r.plan_status !== "none" && r.status !== "done");
+  return planned || shoots[shoots.length - 1] || null;
 }
 
 export async function getAnswers(clientId: string, roundId?: string): Promise<CardAnswer[]> {
@@ -76,7 +84,7 @@ export async function logEvent(clientId: string, type: string, payload: Record<s
   await supabaseAdmin().from("events").insert({ client_id: clientId, type, payload });
 }
 
-/** Where a shoot is, from what we have. */
+/** Where a round is, from what we have. Works for the questionnaire too (it never has a plan). */
 export function shootStage(r: Round, answersCount: number, hasDrive: boolean): ShootStage {
   if (r.status === "done") return "done";
   if (r.plan_status === "accepted") return "confirmed";
@@ -84,7 +92,7 @@ export function shootStage(r: Round, answersCount: number, hasDrive: boolean): S
   if (r.status === "draft") return "not sent";
   const need = r.config.cards.length;
   const driveOk = r.config.prompts.length ? hasDrive : true;
-  if (need > 0 && answersCount >= need && driveOk) return "answered";
+  if ((need > 0 || r.config.prompts.length > 0) && answersCount >= need && driveOk) return "answered";
   return "live";
 }
 
@@ -95,16 +103,18 @@ function normaliseClient(row: Record<string, unknown>): Client {
 function normaliseRound(row: Record<string, unknown>): Round {
   const cfg = (row.config as Partial<RoundConfig>) || {};
   const config: RoundConfig = {
-    ...defaultRound,
+    ...defaultQuestionnaire,
     ...cfg,
     cards: Array.isArray(cfg.cards) ? cfg.cards : [],
     prompts: Array.isArray(cfg.prompts) ? cfg.prompts : [],
     shootOptions: Array.isArray(cfg.shootOptions) ? cfg.shootOptions : [],
     photoAsks: Array.isArray(cfg.photoAsks) ? cfg.photoAsks : [],
+    references: Array.isArray(cfg.references) ? cfg.references : [],
   };
   const plan = ((row.plan as ShootPlan) || {}) as ShootPlan;
   return {
     ...(row as unknown as Round),
+    kind: row.kind === "questionnaire" || Number(row.number) === 0 ? "questionnaire" : "shoot",
     config,
     plan: { ...plan, checklist: Array.isArray(plan.checklist) ? plan.checklist : [] },
     plan_status: (row.plan_status as Round["plan_status"]) || "none",

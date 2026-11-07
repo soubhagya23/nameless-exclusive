@@ -7,9 +7,9 @@ import { supabaseAdmin, RECORDINGS_BUCKET } from "@/lib/supabase-admin";
 import { generateBrief } from "@/lib/brief";
 import { transcribeRecording } from "@/lib/transcribe";
 import { draftNextShoot } from "@/lib/draft";
-import { getRound, listRounds, logEvent } from "@/lib/db";
-import { followUpRound, defaultRound, jatinRound, akshayRound } from "@/lib/templates";
-import type { RoundConfig, ShootPlan } from "@/lib/types";
+import { getRound, listRounds, logEvent, shootsOf } from "@/lib/db";
+import { followUpRound, setsFor } from "@/lib/templates";
+import type { RoundConfig, RoundKind, ShootPlan } from "@/lib/types";
 
 async function guard() {
   const u = await hqUser();
@@ -17,16 +17,19 @@ async function guard() {
   return u;
 }
 
-function cleanConfig(raw: unknown): RoundConfig {
+function cleanConfig(raw: unknown, kind: RoundKind = "shoot"): RoundConfig {
   const c = (raw || {}) as Partial<RoundConfig>;
   const cards = (Array.isArray(c.cards) ? c.cards : []).map((x) => ({ id: String(x.id || "").trim(), claim: String(x.claim || "").trim(), why: String(x.why || "").trim(), clip: String(x.clip || "").trim() || undefined, kind: x.kind === "question" ? ("question" as const) : undefined })).filter((x) => x.id && x.claim);
   const prompts = (Array.isArray(c.prompts) ? c.prompts : []).map((x) => ({ q: String(x.q || "").trim(), h: String(x.h || "").trim() })).filter((x) => x.q);
   const shootOptions = (Array.isArray(c.shootOptions) ? c.shootOptions : []).map((x) => String(x).trim()).filter(Boolean);
   const photoAsks = (Array.isArray(c.photoAsks) ? c.photoAsks : []).map((x) => String(x).trim()).filter(Boolean);
+  const references = (Array.isArray(c.references) ? c.references : []).map((x) => ({ title: String(x.title || "").trim(), url: String(x.url || "").trim(), note: String(x.note || "").trim() || undefined })).filter((x) => x.url).map((x) => ({ ...x, title: x.title || x.url }));
+  for (const r of references) { if (!/^https?:\/\//i.test(r.url)) throw new Error(`Reference link must start with https://: ${r.url}`); }
   const ids = new Set<string>();
   for (const card of cards) { if (ids.has(card.id)) throw new Error(`Two cards share the id "${card.id}"`); ids.add(card.id); }
-  if (!cards.length) throw new Error("A shoot needs at least one card");
-  return { lede: String(c.lede || "").trim(), intro: String(c.intro || "").trim(), secondsPerPrompt: Math.max(20, Math.min(300, Number(c.secondsPerPrompt) || 90)), cards, prompts, shootOptions, photoAsks };
+  if (kind === "questionnaire" && !cards.length) throw new Error("The questionnaire needs at least one card");
+  if (kind === "shoot" && !cards.length && !prompts.length && !photoAsks.length && !shootOptions.length && !references.length) throw new Error("A shoot needs at least one thing for him: a question, a drive prompt, a photo ask, a day option or a reference");
+  return { lede: String(c.lede || "").trim(), intro: String(c.intro || "").trim(), secondsPerPrompt: Math.max(20, Math.min(300, Number(c.secondsPerPrompt) || 90)), cards, prompts, shootOptions, photoAsks, references };
 }
 
 function friendly(e: unknown): never {
@@ -52,12 +55,16 @@ export async function actionSaveClient(clientId: string | null, formData: FormDa
     if (error) friendly(error);
   } else {
     let roundConfig: RoundConfig;
-    try { roundConfig = cleanConfig(JSON.parse(String(formData.get("round") || "{}"))); } catch (e) { throw new Error(e instanceof Error ? e.message : "Shoot 1 is not valid"); }
+    try { roundConfig = cleanConfig(JSON.parse(String(formData.get("round") || "{}")), "questionnaire"); } catch (e) { throw new Error(e instanceof Error ? e.message : "The questionnaire is not valid"); }
     const { data: exists } = await sb.from("clients").select("id").eq("slug", slug).maybeSingle();
     if (exists) throw new Error("That link is already taken by another client. Pick a different slug.");
     const { data, error } = await sb.from("clients").insert({ name, first_name, slug, portrait_url, wa_number, config }).select("id").single();
     if (error || !data) friendly(error || "insert failed");
-    const { error: rErr } = await sb.from("rounds").insert({ client_id: data.id, number: 1, title: "Shoot 1", status: "draft", config: roundConfig });
+    // The questionnaire goes out once he is onboarded. Shoot 1 waits as a draft until the brief is written.
+    const { error: rErr } = await sb.from("rounds").insert([
+      { client_id: data.id, kind: "questionnaire", number: 0, title: "Questionnaire", status: "draft", config: roundConfig },
+      { client_id: data.id, kind: "shoot", number: 1, title: "Shoot 1", status: "draft", config: setsFor(slug).shoot1 },
+    ]);
     if (rErr) friendly(rErr);
     await logEvent(data.id, "client_created", {});
   }
@@ -69,9 +76,11 @@ export async function actionSaveClient(clientId: string | null, formData: FormDa
 
 export async function actionSaveRound(roundId: string, slug: string, formData: FormData) {
   await guard();
-  const title = String(formData.get("title") || "").trim() || "Shoot";
+  const round = await getRound(roundId);
+  if (!round) throw new Error("round not found");
+  const title = String(formData.get("title") || "").trim() || (round.kind === "questionnaire" ? "Questionnaire" : "Shoot");
   let config: RoundConfig;
-  try { config = cleanConfig(JSON.parse(String(formData.get("round") || "{}"))); } catch (e) { throw new Error(e instanceof Error ? e.message : "Shoot is not valid"); }
+  try { config = cleanConfig(JSON.parse(String(formData.get("round") || "{}")), round.kind); } catch (e) { throw new Error(e instanceof Error ? e.message : "Not valid"); }
   const { error } = await supabaseAdmin().from("rounds").update({ title, config }).eq("id", roundId);
   if (error) throw new Error(error.message);
   revalidatePath(`/hq/${slug}`);
@@ -82,16 +91,17 @@ export async function actionSaveRound(roundId: string, slug: string, formData: F
 export async function actionNewShoot(clientId: string, slug: string, formData: FormData) {
   await guard();
   const how = String(formData.get("how") || "ai");
-  const rounds = await listRounds(clientId);
-  const number = (rounds[rounds.length - 1]?.number || 0) + 1;
-  let config: RoundConfig = followUpRound;
+  const shoots = shootsOf(await listRounds(clientId));
+  const number = (shoots[shoots.length - 1]?.number || 0) + 1;
+  const base = number === 1 ? setsFor(slug).shoot1 : followUpRound;
+  let config: RoundConfig = base;
   let note = "";
   if (how === "ai") {
-    try { config = await draftNextShoot(clientId, number); } catch (e) { note = e instanceof Error ? e.message : String(e); config = followUpRound; }
-  } else if (how === "previous" && rounds.length) {
-    config = { ...rounds[rounds.length - 1].config, shootOptions: [] };
+    try { config = await draftNextShoot(clientId, number); } catch (e) { note = e instanceof Error ? e.message : String(e); config = base; }
+  } else if (how === "previous" && shoots.length) {
+    config = { ...shoots[shoots.length - 1].config, shootOptions: [], references: [] };
   }
-  const { data, error } = await supabaseAdmin().from("rounds").insert({ client_id: clientId, number, title: `Shoot ${number}`, status: "draft", config }).select("id").single();
+  const { data, error } = await supabaseAdmin().from("rounds").insert({ client_id: clientId, kind: "shoot", number, title: `Shoot ${number}`, status: "draft", config }).select("id").single();
   if (error || !data) throw new Error(error?.message || "insert failed");
   await logEvent(clientId, "shoot_drafted", { shoot: number, how, note });
   revalidatePath(`/hq/${slug}`);
@@ -108,16 +118,17 @@ export async function actionRedraft(roundId: string, slug: string) {
   revalidatePath(`/hq/${slug}/rounds/${roundId}`);
 }
 
-/** Shoot 1 only: replace the questions with the questionnaire set (Jatin's for jatin, the house set otherwise). Answers stay attached by card id. */
+/** Replace a round with its house set: the questionnaire set for the questionnaire, the shoot 1 set for shoot 1 (Jatin's and Akshay's own where they have one). Answers stay attached by card id. */
 export async function actionLoadQuestionnaire(roundId: string, slug: string) {
   await guard();
   const round = await getRound(roundId);
-  if (!round || round.number !== 1) throw new Error("only shoot 1 has a questionnaire set");
-  const base = slug === "jatin" ? jatinRound : slug === "akshay" ? akshayRound : defaultRound;
+  if (!round) throw new Error("round not found");
+  const sets = setsFor(slug);
+  const base = round.kind === "questionnaire" ? sets.questionnaire : round.number === 1 ? sets.shoot1 : followUpRound;
   const cur = round.config as Partial<RoundConfig>;
-  const config: RoundConfig = { ...base, shootOptions: cur.shootOptions?.length ? cur.shootOptions : base.shootOptions };
+  const config: RoundConfig = { ...base, shootOptions: cur.shootOptions?.length ? cur.shootOptions : base.shootOptions, references: cur.references?.length ? cur.references : base.references || [] };
   await supabaseAdmin().from("rounds").update({ config }).eq("id", roundId);
-  await logEvent(round.client_id, "shoot_drafted", { shoot: round.number, how: "questionnaire" });
+  await logEvent(round.client_id, "shoot_drafted", { shoot: round.number, how: "house set" });
   revalidatePath(`/hq/${slug}/rounds/${roundId}`);
   revalidatePath(`/c/${slug}`);
 }
@@ -128,10 +139,13 @@ export async function actionSendShoot(roundId: string, slug: string) {
   const round = await getRound(roundId);
   if (!round) throw new Error("shoot not found");
   const sb = supabaseAdmin();
-  await sb.from("rounds").update({ status: "done" }).eq("client_id", round.client_id).eq("status", "live").neq("id", roundId);
-  await sb.from("clients").update({ shoot_days: [] }).eq("id", round.client_id);
+  if (round.kind === "shoot") {
+    // One shoot live at a time. The questionnaire is its own thing and stays as it is.
+    await sb.from("rounds").update({ status: "done" }).eq("client_id", round.client_id).eq("kind", "shoot").eq("status", "live").neq("id", roundId);
+    await sb.from("clients").update({ shoot_days: [] }).eq("id", round.client_id);
+  }
   await sb.from("rounds").update({ status: "live", sent_at: new Date().toISOString() }).eq("id", roundId);
-  await logEvent(round.client_id, "shoot_sent", { shoot: round.number });
+  await logEvent(round.client_id, round.kind === "questionnaire" ? "questionnaire_sent" : "shoot_sent", { shoot: round.number });
   revalidatePath(`/hq/${slug}`); revalidatePath("/hq");
 }
 
@@ -154,7 +168,7 @@ export async function actionDeleteRound(roundId: string, slug: string) {
   await guard();
   const round = await getRound(roundId);
   if (!round) return;
-  if (round.status !== "draft" || round.number === 1) throw new Error("Only drafts after shoot 1 can be deleted");
+  if (round.status !== "draft" || round.kind !== "shoot") throw new Error("Only draft shoots can be deleted");
   await supabaseAdmin().from("rounds").delete().eq("id", roundId);
   revalidatePath(`/hq/${slug}`);
   redirect(`/hq/${slug}`);
@@ -226,8 +240,8 @@ export async function actionResetClient(clientId: string, slug: string) {
   await sb.from("briefs").delete().eq("client_id", clientId);
   await sb.from("events").delete().eq("client_id", clientId);
   await sb.from("rounds").update({ plan_status: "none", plan_accepted_at: null, checklist_done: [], sent_at: null, shoot_date: null, shoot_note: null }).eq("client_id", clientId);
-  await sb.from("rounds").update({ status: "draft" }).eq("client_id", clientId).neq("number", 1);
-  await sb.from("rounds").update({ status: "live" }).eq("client_id", clientId).eq("number", 1);
+  await sb.from("rounds").update({ status: "draft" }).eq("client_id", clientId).eq("kind", "shoot");
+  await sb.from("rounds").update({ status: "live", sent_at: new Date().toISOString() }).eq("client_id", clientId).eq("kind", "questionnaire");
   await sb.from("clients").update({ shoot_days: [], status: "handshake" }).eq("id", clientId);
   revalidatePath(`/hq/${slug}`); revalidatePath("/hq");
 }

@@ -20,7 +20,7 @@ export async function generateBrief(clientId: string): Promise<string> {
       return `- "${c.claim}" → ${v}${fix?.transcript ? `\n  ${c.kind === "question" ? "His answer" : "Voice note on this card"}: ${fix.transcript}` : ""}`;
     });
     const drive = recordings.filter((r) => r.kind === "drive" && r.round_id === rd.id && r.transcript).map((r) => r.transcript).join("\n\n");
-    return `ROUND ${rd.number}: ${rd.title}${rd.shoot_date ? ` (shoot day ${rd.shoot_date})` : ""}\nCards:\n${cardLines.join("\n")}\nDrive prompts: ${rd.config.prompts.map((p) => p.q).join(" / ") || "none"}\nDrive transcript:\n${drive || "(none yet)"}`;
+    return `${rd.kind === "questionnaire" ? "ONBOARDING QUESTIONNAIRE" : `SHOOT ${rd.number}`}: ${rd.title}${rd.shoot_date ? ` (shoot day ${rd.shoot_date})` : ""}\nCards:\n${cardLines.join("\n") || "(none)"}\nDrive prompts: ${rd.config.prompts.map((p) => p.q).join(" / ") || "none"}\nDrive transcript:\n${drive || "(none yet)"}`;
   });
   const askLines = asks.filter((a) => a.status === "answered").map((a) => { const rec = a.recording_id ? recordings.find((r) => r.id === a.recording_id) : null; return `Q: ${a.question}\nA: ${a.answer_text || ""}${rec?.transcript ? (a.answer_text ? " / voice: " : "") + rec.transcript : ""}`; });
   const otherVoice = askLines.join("\n\n");

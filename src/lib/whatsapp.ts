@@ -7,8 +7,8 @@ export function clientLink(slug: string) {
 
 export function msgShootLive(firstName: string, shootNumber: number, slug: string, minutes = 3) {
   const link = clientLink(slug);
-  if (shootNumber === 1) return `${firstName}, your page is ready. About ${minutes} minutes, voice notes welcome, Hindi or English, whatever comes out. Everything after that is on us.\n${link}`;
-  return `${firstName}, shoot ${shootNumber} is coming up. ${minutes} minutes on your page so we film the right things.\n${link}`;
+  if (shootNumber === 0) return `${firstName}, your page is ready. About ${minutes} minutes, voice notes welcome, Hindi or English, whatever comes out. Everything after that is on us.\n${link}`;
+  return `${firstName}, shoot ${shootNumber} is coming up. Ten minutes on your page, most of it in the car, so we film the right things.\n${link}`;
 }
 
 export function msgPlanSent(firstName: string, shootNumber: number, date: string | undefined, slug: string) {
@@ -18,6 +18,7 @@ export function msgPlanSent(firstName: string, shootNumber: number, date: string
 
 export function msgNudge(firstName: string, shootNumber: number, slug: string) {
   const link = clientLink(slug);
+  if (shootNumber === 0) return `${firstName}, whenever you get a quiet three minutes, your page is waiting. Thumbs only.\n${link}`;
   return `${firstName}, whenever you get a quiet ten minutes, the shoot ${shootNumber} page is waiting. Car ride is perfect for it.\n${link}`;
 }
 

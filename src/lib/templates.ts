@@ -1,18 +1,18 @@
 import type { RoundConfig } from "./types";
 
 /**
- * Shoot 1 questionnaire. Built from the 14-question personal branding questionnaire:
- * the questions he can answer with a tap are cards, the ones that need a story are drive prompts.
+ * The onboarding questionnaire: the cards he taps when he is onboarded, once. Built from the
+ * 14-question personal branding questionnaire. The story questions that need his voice go on
+ * the shoot 1 drive (see shoot1 below), the ones he can confirm with a tap are cards here.
  * HQ > New client starts from this; edit the cards for the person.
  *
  * Map to the questionnaire:
  *  cards   01 reputation, 02 people, 05 office, 09 belief, 10 voice, 11 content that feels like you, 12 off limits
  *  drive   03 turning point, 07 difficult decision (first pass), 04 responsibility, 06 working day, 08 trust, 13 and 14 optional
  */
-export const defaultRound: RoundConfig = {
+export const defaultQuestionnaire: RoundConfig = {
   lede: "We wrote your story from what we already know. You just tell us where we got it wrong. Thumbs only, no typing.",
   intro: "Each card is one line of the story we plan to build. Nothing here is public yet, and a yes on a card is not a yes to post it.",
-  secondsPerPrompt: 75,
   cards: [
     { id: "name", claim: "Six months from now, when someone in your patch talks real estate, your name comes up first.", why: "That is the whole job. Recall, then trust. If there is something else you want people to remember after a few videos, say it on the mic." },
     { id: "who", claim: "The people you most want are first-home buyers and upgrading families in your area.", why: "The content is aimed at them. If you know the decision they are stuck on, tell us in a voice note." },
@@ -27,6 +27,16 @@ export const defaultRound: RoundConfig = {
     { id: "family", claim: "Family stays off camera unless you say otherwise.", why: "Off limits by default. Anything else that should stay private, say it here or on the last drive prompt." },
     { id: "rhythm", claim: "Stories almost every day, 12 to 15 reels a month, and you check with us before reposting anything.", why: "That is the operating rhythm from day one." },
   ],
+  prompts: [],
+  shootOptions: [],
+  photoAsks: ["A photo of your desk or the office"],
+};
+
+export const defaultShoot1: RoundConfig = {
+  lede: "Ten minutes in the car, a photo or two, and pick a day. We do the rest.",
+  intro: "",
+  secondsPerPrompt: 75,
+  cards: [],
   prompts: [
     { q: "The moment real estate became serious for you.", h: "One turning point. Then how it still shows up in the way you work." },
     { q: "A deal or a client decision that got difficult.", h: "What was at stake, what you did, what happened. A trade-off, or something you could not control." },
@@ -38,11 +48,12 @@ export const defaultRound: RoundConfig = {
     { q: "What should stay private.", h: "Family, history, opinions, filming situations you do not want. Say background only for anything we should hear but never use." },
   ],
   shootOptions: [],
-  photoAsks: ["A photo of a listing we could film at", "A photo of your desk or the office"],
+  photoAsks: ["A photo of a listing we could film at"],
+  references: [],
 };
 
-export const jatinRound: RoundConfig = {
-  ...defaultRound,
+export const jatinQuestionnaire: RoundConfig = {
+  ...defaultQuestionnaire,
   cards: [
     { id: "name", claim: "Six months from now, when someone in the West talks real estate, your name comes up first.", why: "That is the whole job. Recall, then trust. If there is something else you want people to remember after a few videos, say it on the mic." },
     { id: "who", claim: "The people you most want are first-home buyers and upgrading families in Melbourne's North and West.", why: "Truganina and around is the heart of it. If you know the decision they are stuck on and what they cannot find in an agent, tell us in a voice note." },
@@ -58,6 +69,16 @@ export const jatinRound: RoundConfig = {
     { id: "family", claim: "Family stays off camera unless you say otherwise.", why: "Off limits by default. Anything else that should stay private, say it here or on the last drive prompt." },
     { id: "rhythm", claim: "Stories almost every day, 12 to 15 reels a month, and you check with us before reposting anything.", why: "That is the operating rhythm from day one." },
   ],
+  prompts: [],
+  shootOptions: [],
+  photoAsks: ["A photo of your desk at the Truganina office"],
+};
+
+export const jatinShoot1: RoundConfig = {
+  lede: "Ten minutes in the car, a photo of a listing, and pick a day. We do the rest.",
+  intro: "",
+  secondsPerPrompt: 75,
+  cards: [],
   prompts: [
     { q: "The moment real estate became serious for you.", h: "One turning point. Then how it still shows up in the way you work." },
     { q: "A deal or a client decision that got difficult.", h: "What was at stake, what you did, what happened. A trade-off, or something you could not control." },
@@ -69,18 +90,18 @@ export const jatinRound: RoundConfig = {
     { q: "What should stay private.", h: "Family, history, opinions, filming situations you do not want. Say background only for anything we should hear but never use." },
   ],
   shootOptions: ["Sat 15 Nov", "Tue 18 Nov", "Sat 22 Nov"],
-  photoAsks: ["A photo of a listing we could film at", "A photo of your desk at the Truganina office"],
+  photoAsks: ["A photo of a listing we could film at"],
+  references: [],
 };
 
 /**
- * Akshay's own personal brand, shoot 1. Built only from what he has already told Soubh:
+ * Akshay's own personal brand questionnaire. Built only from what he has already told Soubh:
  * founder building in public, the operator to brand-builder storyline, raw and premium, Hinglish, no guru energy.
  * Nothing here is an invented fact. Numbers stay out until he gives them.
  */
-export const akshayRound: RoundConfig = {
+export const akshayQuestionnaire: RoundConfig = {
   lede: "You have sat on the other side of this table for Jatin. Your turn. Thumbs only, no typing.",
   intro: "Each card is one line of the story we would build from what you have already told me. Nothing public yet, and a yes on a card is not a yes to post it.",
-  secondsPerPrompt: 75,
   cards: [
     { id: "name", claim: "Six months from now, people know you as the founder who builds businesses and turns them into brands people actually notice.", why: "Not a guru, not a coach, not a business page. A founder building in public. If there is something else you want people to remember, say it on the mic." },
     { id: "who", claim: "This is for young founders, business owners, ambitious Indians in Australia and overseas, and people building something of their own.", why: "Not only marketers. If you know who you most want watching, say it in a voice note." },
@@ -97,6 +118,16 @@ export const akshayRound: RoundConfig = {
     { id: "objective", claim: "Attention, then trust, then reputation, then opportunities. The audience should never feel sold to.", why: "Studio clients, partnerships, podcasts and deals come from reputation, not from pitches in captions." },
     { id: "family", claim: "Family and the relationship appear on your terms, moment by moment. Nothing goes up without a yes from you.", why: "Off limits by default. You choose each one. Say on the last drive prompt what is always out." },
   ],
+  prompts: [],
+  shootOptions: [],
+  photoAsks: ["Your desk, or wherever you actually work now"],
+};
+
+export const akshayShoot1: RoundConfig = {
+  lede: "Ten minutes in the car, a photo or two, and pick a day. The team does the rest.",
+  intro: "",
+  secondsPerPrompt: 75,
+  cards: [],
   prompts: [
     { q: "The day you decided to step out of the store.", h: "What you were doing, what you were tired of, what you wanted instead. How it still shows up in how you work." },
     { q: "A decision at 30 Minutes Fix that got hard.", h: "A location, a hire, a bad month. What was at stake, what you did, what happened. Something you could not control." },
@@ -107,7 +138,8 @@ export const akshayRound: RoundConfig = {
     { q: "What should stay private.", h: "People, money, history, filming situations you do not want. Say background only for anything we hear but never use." },
   ],
   shootOptions: ["Sat 15 Nov", "Tue 18 Nov", "Sat 22 Nov"],
-  photoAsks: ["A photo from inside one of the stores, any one", "Your desk, or wherever you actually work now"],
+  photoAsks: ["A photo from inside one of the stores, any one"],
+  references: [],
 };
 
 /** Starting point for shoot 2 and 3 when the AI draft is not used. Short: what changed, what to film next. */
@@ -128,8 +160,16 @@ export const followUpRound: RoundConfig = {
   prompts: [],
   shootOptions: [],
   photoAsks: ["A photo of the listing for this shoot"],
+  references: [],
 };
 
 export function slugify(s: string) {
   return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "card";
+}
+
+/** Which sets a client starts from. Named clients get their own, everyone else the house set. */
+export function setsFor(slug: string): { questionnaire: RoundConfig; shoot1: RoundConfig } {
+  if (slug === "jatin") return { questionnaire: jatinQuestionnaire, shoot1: jatinShoot1 };
+  if (slug === "akshay") return { questionnaire: akshayQuestionnaire, shoot1: akshayShoot1 };
+  return { questionnaire: defaultQuestionnaire, shoot1: defaultShoot1 };
 }

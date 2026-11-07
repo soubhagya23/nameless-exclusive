@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getClientBySlug, getAnswers, getRecordings, getBriefs, getAsks, getPhotos, getEvents, listRounds, shootStage } from "@/lib/db";
+import { getClientBySlug, getAnswers, getRecordings, getBriefs, getAsks, getPhotos, getEvents, listRounds, shootStage, questionnaireOf, shootsOf } from "@/lib/db";
 import { msgShootLive, msgPlanSent, msgNudge, msgAsk } from "@/lib/whatsapp";
 import { actionGenerateBrief, actionRetranscribe, actionSaveBriefEdit, actionAsk, actionDeleteAsk, actionNewShoot, actionSendShoot, actionShootDone, actionReopenShoot, actionSavePlan, actionUnsendPlan } from "../actions";
 import ResetButton from "./reset-button";
@@ -21,7 +21,8 @@ const EVENT_WORDS: Record<string, (p: Record<string, unknown>) => string> = {
   photo: (p) => `sent a photo: ${p.prompt}`,
   recording_deleted: () => "re-did a recording",
   shoot_sent: (p) => `we sent shoot ${p.shoot}`,
-  shoot_drafted: (p) => `we drafted shoot ${p.shoot}`,
+  questionnaire_sent: () => "we sent the questionnaire",
+  shoot_drafted: (p) => (Number(p.shoot) === 0 ? "we reloaded the questionnaire" : `we drafted shoot ${p.shoot}`),
   shoot_done: (p) => `we marked shoot ${p.shoot} done`,
   plan_sent: (p) => `we sent the plan for shoot ${p.shoot}`,
   asked: (p) => `we asked: “${p.question}”`,
@@ -36,7 +37,16 @@ export default async function ClientDetail({ params, searchParams }: { params: P
   const rounds = await listRounds(client.id);
   const [allAnswers, recordings, briefs, asks, photos, events] = await Promise.all([getAnswers(client.id), getRecordings(client.id), getBriefs(client.id), getAsks(client.id), getPhotos(client.id), getEvents(client.id)]);
   const stages = Object.fromEntries(rounds.map((r) => [r.id, shootStage(r, allAnswers.filter((a) => a.round_id === r.id).length, recordings.some((x) => x.round_id === r.id && x.kind === "drive"))]));
-  const shoot = rounds.find((r) => r.id === sp.s) || rounds.find((r) => r.status === "live") || [...rounds].reverse().find((r) => r.plan_status !== "none" && r.status !== "done") || rounds[rounds.length - 1] || null;
+  const questionnaire = questionnaireOf(rounds);
+  const shoots = shootsOf(rounds);
+  // What the page opens on: the tab asked for, else the live shoot, else a planned one, else the questionnaire while it is still open, else the last shoot.
+  const shoot = rounds.find((r) => r.id === sp.s)
+    || shoots.find((r) => r.status === "live")
+    || [...shoots].reverse().find((r) => r.plan_status !== "none" && r.status !== "done")
+    || (questionnaire && questionnaire.status !== "done" ? questionnaire : null)
+    || shoots[shoots.length - 1] || questionnaire || null;
+  const isQ = shoot?.kind === "questionnaire";
+  const label = (r: { kind: string; number: number }) => (r.kind === "questionnaire" ? "Questionnaire" : `Shoot ${r.number}`);
   const answers = shoot ? allAnswers.filter((a) => a.round_id === shoot.id) : [];
   const shootRecs = shoot ? recordings.filter((r) => r.round_id === shoot.id) : [];
   const shootPhotos = shoot ? photos.filter((p) => p.round_id === shoot.id) : [];
@@ -47,7 +57,7 @@ export default async function ClientDetail({ params, searchParams }: { params: P
   const stage = shoot ? stages[shoot.id] : null;
   const openAsks = asks.filter((a) => a.status === "open").length;
   const quietHours = shoot?.sent_at && stage === "live" && answers.length === 0 ? (Date.now() - new Date(shoot.sent_at).getTime()) / 36e5 : 0;
-  const lastActivity = events.find((e) => !["shoot_sent", "shoot_drafted", "shoot_done", "plan_sent", "asked", "client_created"].includes(e.type));
+  const lastActivity = events.find((e) => !["shoot_sent", "questionnaire_sent", "shoot_drafted", "shoot_done", "plan_sent", "asked", "client_created"].includes(e.type));
 
   return (
     <div>
@@ -64,11 +74,17 @@ export default async function ClientDetail({ params, searchParams }: { params: P
         </div>
       </div>
 
-      {/* Shoot tabs */}
+      {/* Questionnaire first, then the shoots */}
       <div className="panel" style={{ marginBottom: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            {rounds.map((r) => (
+            {questionnaire ? (
+              <Link href={`/hq/${client.slug}?s=${questionnaire.id}`} className={`pill ${questionnaire.id === shoot?.id ? "yes" : ""}`} style={{ padding: "8px 14px" }}>
+                Questionnaire · {stages[questionnaire.id] === "answered" ? `answered ${allAnswers.filter((a) => a.round_id === questionnaire.id).length} of ${questionnaire.config.cards.length}` : stages[questionnaire.id]}
+              </Link>
+            ) : null}
+            {questionnaire && shoots.length ? <span className="label" style={{ color: "var(--dim)" }}>then</span> : null}
+            {shoots.map((r) => (
               <Link key={r.id} href={`/hq/${client.slug}?s=${r.id}`} className={`pill ${r.id === shoot?.id ? "yes" : ""}`} style={{ padding: "8px 14px" }}>
                 Shoot {r.number} · {stages[r.id]}{r.plan?.date ? ` · ${r.plan.date}` : ""}
               </Link>
@@ -86,14 +102,15 @@ export default async function ClientDetail({ params, searchParams }: { params: P
         {shoot ? (
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line)" }}>
             <span className={`pill ${stage === "live" || stage === "answered" ? "ok" : stage === "not sent" ? "warn" : ""}`}>{stage}</span>
-            <strong style={{ color: "var(--ink)", fontWeight: 500 }}>Shoot {shoot.number}</strong>
-            <Link className="btn small ghost" href={`/hq/${client.slug}/rounds/${shoot.id}`}>Edit questions</Link>
+            <strong style={{ color: "var(--ink)", fontWeight: 500 }}>{label(shoot)}</strong>
+            <Link className="btn small ghost" href={`/hq/${client.slug}/rounds/${shoot.id}`}>{isQ ? "Edit the cards" : "Edit what he sees"}</Link>
             {shoot.status === "draft" ? <form action={actionSendShoot.bind(null, shoot.id, client.slug)}><button className="btn small" type="submit">Send to him (goes live)</button></form> : null}
             {shoot.status === "live" ? <><CopyButton text={msgShootLive(client.first_name, shoot.number, client.slug)} label="Copy the WhatsApp" waNumber={client.wa_number} /><form action={actionShootDone.bind(null, shoot.id, client.slug)}><button className="btn small ghost" type="submit">Mark done</button></form></> : null}
             {shoot.status === "done" ? <form action={actionReopenShoot.bind(null, shoot.id, client.slug)}><button className="btn small ghost" type="submit">Back to draft</button></form> : null}
             {shoot.sent_at ? <span className="label" style={{ color: "var(--dim)" }}>sent {ago(shoot.sent_at)}</span> : null}
           </div>
-        ) : <p style={{ marginTop: 12 }}>No shoots yet. Press New shoot.</p>}
+        ) : <p style={{ marginTop: 12 }}>Nothing here yet. Press New shoot.</p>}
+        {isQ ? <p className="label" style={{ color: "var(--dim)", marginTop: 10 }}>The questionnaire goes out once, when he is onboarded. His answers feed the brief. Shoots come after.</p> : null}
         {quietHours >= 48 ? (
           <div className="notice" style={{ marginTop: 12, borderColor: "#c77d00", color: "#8a5600", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <span>Sent {Math.round(quietHours / 24)} days ago, nothing answered yet.</span>
@@ -105,8 +122,9 @@ export default async function ClientDetail({ params, searchParams }: { params: P
       {shoot ? (
         <div className="two">
           <div>
+            {shoot.config.cards.length ? (
             <div className="panel">
-              <h3>Cards · {answers.length} of {shoot.config.cards.length}</h3>
+              <h3>{isQ ? "Cards" : "Questions"} · {answers.length} of {shoot.config.cards.length}</h3>
               <div className="rowlist">
                 {shoot.config.cards.map((c) => {
                   const a = answers.find((x) => x.card_id === c.id);
@@ -129,6 +147,7 @@ export default async function ClientDetail({ params, searchParams }: { params: P
                 })}
               </div>
             </div>
+            ) : null}
 
             {shoot.config.prompts.length ? (
               <div className="panel">
@@ -146,6 +165,21 @@ export default async function ClientDetail({ params, searchParams }: { params: P
                     <p className="label" style={{ color: "var(--dim)", marginTop: 10 }}>Prompts he was shown: {shoot.config.prompts.map((p) => p.q).join(" / ")}</p>
                   </div>
                 )}
+              </div>
+            ) : null}
+
+            {(shoot.config.references || []).length ? (
+              <div className="panel">
+                <h3>References on his page · {(shoot.config.references || []).length}</h3>
+                <div className="rowlist">
+                  {(shoot.config.references || []).map((r, k) => (
+                    <div key={k}>
+                      <span className="label" style={{ color: "var(--dim)" }}>{String(k + 1).padStart(2, "0")}</span>
+                      <div><a href={r.url} target="_blank" rel="noopener" style={{ color: "var(--ink)" }}>{r.title}</a>{r.note ? <div style={{ marginTop: 4 }}>{r.note}</div> : null}</div>
+                    </div>
+                  ))}
+                </div>
+                <p className="label" style={{ color: "var(--dim)", marginTop: 10 }}>Add or change them under Edit what he sees.</p>
               </div>
             ) : null}
 
@@ -196,6 +230,7 @@ export default async function ClientDetail({ params, searchParams }: { params: P
           </div>
 
           <div>
+            {!isQ ? (
             <div className="panel">
               <h3>Shoot {shoot.number} plan</h3>
               <p style={{ fontSize: 14, marginBottom: 12 }}>
@@ -228,6 +263,7 @@ export default async function ClientDetail({ params, searchParams }: { params: P
                 </div>
               ) : null}
             </div>
+            ) : null}
 
             <div className="panel">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
@@ -235,7 +271,7 @@ export default async function ClientDetail({ params, searchParams }: { params: P
                 <form action={actionGenerateBrief.bind(null, client.id, client.slug)}><button className="btn small" type="submit">{brief ? "Write a new draft" : "Write the first draft"}</button></form>
               </div>
               {!brief ? (
-                <p>Written from every shoot&apos;s answers and transcripts, in our voice, for Akshay to edit. Best after the drive is transcribed. About thirty seconds.</p>
+                <p>Written from the questionnaire and every shoot&apos;s answers and transcripts, in our voice, for Akshay to edit. Best once the cards are in. About thirty seconds.</p>
               ) : (
                 <form action={actionSaveBriefEdit.bind(null, brief.id, client.slug)} className="form">
                   <span className="label" style={{ color: "var(--dim)" }}>{brief.model} · {new Date(brief.created_at).toLocaleString("en-AU")}{brief.edited_content ? " · edited" : ""}</span>

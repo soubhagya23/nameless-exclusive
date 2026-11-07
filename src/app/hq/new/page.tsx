@@ -1,5 +1,5 @@
 import ClientForm from "../client-form";
-import { defaultRound, jatinRound, akshayRound } from "@/lib/templates";
+import { setsFor } from "@/lib/templates";
 
 export default async function NewClient({ searchParams }: { searchParams: Promise<{ t?: string }> }) {
   const sp = await searchParams;
@@ -14,7 +14,7 @@ export default async function NewClient({ searchParams }: { searchParams: Promis
     <div>
       <h2 style={{ marginBottom: 6 }}>New client</h2>
       <p className="label" style={{ color: "var(--dim)", marginBottom: 20 }}>Start from the <a href="/hq/new">default handshake</a>, <a href="/hq/new?t=jatin">Jatin&apos;s set</a> or <a href="/hq/new?t=akshay">Akshay&apos;s own set</a>. Edit the cards for the person before you send the link.</p>
-      <ClientForm clientId={null} initial={preset} round={jatin ? jatinRound : akshay ? akshayRound : defaultRound} />
+      <ClientForm clientId={null} initial={preset} round={setsFor(jatin ? "jatin" : akshay ? "akshay" : "").questionnaire} />
     </div>
   );
 }

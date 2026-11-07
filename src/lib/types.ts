@@ -1,7 +1,13 @@
 export type Card = { id: string; claim: string; why: string; clip?: string; kind?: "claim" | "question" };
 export type Prompt = { q: string; h: string };
+/** A content reference we show him before a shoot: a reel, an image, a folder. */
+export type Reference = { title: string; url: string; note?: string };
 
-/** What one shoot's questionnaire asks of the client. Lives on the round (= shoot). */
+/**
+ * What a round asks of the client. Two kinds of round:
+ *  questionnaire: the onboarding cards, sent once when he is onboarded (number 0)
+ *  shoot: questions, the drive, references and photos for one shoot (number 1, 2, 3)
+ */
 export type RoundConfig = {
   lede?: string;
   intro?: string;
@@ -9,8 +15,11 @@ export type RoundConfig = {
   prompts: Prompt[];
   shootOptions: string[];
   photoAsks: string[]; // "A photo of the listing we will film at"
+  references?: Reference[];
   secondsPerPrompt?: number;
 };
+
+export type RoundKind = "questionnaire" | "shoot";
 
 /** The shoot plan we send him once we have planned the day. */
 export type ShootPlan = {
@@ -46,6 +55,7 @@ export type Client = {
 export type Round = {
   id: string;
   client_id: string;
+  kind: RoundKind;
   number: number;
   title: string;
   status: "draft" | "live" | "done";
