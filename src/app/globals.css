@@ -96,3 +96,16 @@ audio { width: 100%; max-width: 100%; display: block; }
 .notice { padding: 12px 14px; background: #fff; border: 1px solid var(--line); font-size: 14px; } .notice.err { border-color: var(--red); color: var(--red); }
 .center { min-height: 100vh; display: grid; place-items: center; padding: 20px; background: var(--dark); color: #fff; }
 .center .box { width: 100%; max-width: 420px; display: grid; gap: 16px; } .center input { font: inherit; padding: 12px 14px; border: 1px solid var(--dline); background: #1a1a1a; color: #fff; border-radius: 0; width: 100%; }
+
+/* team board */
+.board { display: grid; grid-template-columns: repeat(4, minmax(230px, 1fr)); gap: 12px; align-items: start; overflow-x: auto; padding-bottom: 8px; }
+@media (max-width: 900px) { .board { grid-template-columns: repeat(4, 260px); } }
+.bcol { background: var(--grey); border: 1px solid var(--line); min-height: 320px; display: flex; flex-direction: column; } .bcol.over { border-color: var(--ink); }
+.bhead { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 14px 14px 10px; } .bhead h3 { font-size: 15px; }
+.blist { padding: 0 10px 10px; display: grid; gap: 8px; align-content: start; flex: 1; }
+.bcard { background: #fff; border: 1px solid var(--line); padding: 12px 14px; cursor: grab; display: grid; gap: 8px; } .bcard:hover { border-color: var(--ink); } .bcard.ghost { opacity: 0.4; }
+.btitle { font-family: var(--fh); font-size: 15px; letter-spacing: -0.01em; color: var(--ink); }
+.bmeta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; } .bmeta .pill { padding: 2px 8px; font-size: 10px; }
+.bslot { height: 44px; border: 1px dashed var(--ink); background: #fff; }
+.badd { background: transparent; border: 1px dashed var(--line); color: var(--dim); padding: 10px; font-family: var(--fl); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; text-align: left; } .badd:hover { border-color: var(--ink); color: var(--ink); }
+.bmodal { position: fixed; inset: 0; background: rgba(17,17,17,0.5); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; }

@@ -10,6 +10,9 @@ export default async function HQLayout({ children }: { children: React.ReactNode
       <div className="hq-top">
         <Link href="/hq" className="label" style={{ display: "inline-flex", alignItems: "center", gap: 12 }}><span className="redact" /> HQ</Link>
         <div className="links label">
+          <Link href="/hq">Clients</Link>
+          <Link href="/hq/board">Board</Link>
+          <Link href="/hq/links">Links</Link>
           <Link href="/hq/new">New client</Link>
           <span style={{ color: "var(--dim)" }}>{user.email}</span>
           <form action="/auth/signout" method="post"><button className="btn ghost small" style={{ color: "#fff", borderColor: "#fff" }} type="submit">Sign out</button></form>

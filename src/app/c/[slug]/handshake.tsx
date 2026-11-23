@@ -26,7 +26,7 @@ type Props = {
   supabaseAnon: string;
 };
 
-type RecKind = "card" | "drive" | "ask";
+type RecKind = "card" | "ask";
 type RecOpts = { roundId: string; cardId?: string | null; askId?: string; onDone?: (id: string, url: string) => void | Promise<void> };
 
 function fmt(s: number) { const m = Math.floor(s / 60), r = s % 60; return `${m}:${r > 9 ? r : "0" + r}`; }
@@ -169,6 +169,83 @@ function CardDeck({ roundId, cards, initial, rec, post, say, onCount, doneLine, 
   );
 }
 
+/* ---------- shoot questions: one at a time, type or talk, sent means sent ---------- */
+
+function OneAtATime({ roundId, cards, initial, rec, post, say, onCount, shootNumber }: {
+  roundId: string; cards: Card[]; initial: Answer[]; rec: Recorder;
+  post: (path: string, body: unknown, roundId: string) => Promise<unknown>; say: (m: string) => void;
+  onCount: (n: number) => void; shootNumber: number;
+}) {
+  const [answers, setAnswers] = useState<Record<string, Answer>>(() => Object.fromEntries(initial.map((a) => [a.card_id, a])));
+  const [text, setText] = useState("");
+  const [voice, setVoice] = useState<{ id: string; url: string } | null>(null);
+  const [sending, setSending] = useState(false);
+  const done = cards.filter((c) => answers[c.id]);
+  const card = cards.find((c) => !answers[c.id]);
+  const mine = !!card && rec.recording === "card" && rec.activeId === card.id;
+
+  async function send(skip = false) {
+    if (!card) return;
+    const note = text.trim();
+    if (!skip && !note && !voice) { say("Write a line or record it first."); return; }
+    setSending(true);
+    const a: Answer = { round_id: roundId, card_id: card.id, verdict: skip ? "skip" : "yes", note: skip ? "" : note, recording_id: skip ? null : voice?.id || null };
+    try {
+      await post("card", a, roundId);
+      const map = { ...answers, [card.id]: a };
+      setAnswers(map); onCount(cards.filter((c) => map[c.id]).length);
+      setText(""); setVoice(null);
+      say(skip ? "Skipped." : "Sent.");
+    } catch { say("Could not send. Check your connection."); } finally { setSending(false); }
+  }
+  function record() {
+    if (!card) return;
+    if (mine) { rec.stop(); return; }
+    void rec.start("card", { roundId, cardId: card.id, onDone: (id, url) => { setVoice({ id, url }); say("Got it. Press Send when you are ready."); } });
+  }
+
+  if (!cards.length) return null;
+  return (
+    <div style={{ display: "grid", gap: 10 }}>
+      {done.map((c, k) => (
+        <div key={c.id} className="card" style={{ padding: "14px 18px", borderColor: "var(--line)", display: "grid", gridTemplateColumns: "auto 1fr", gap: 14, alignItems: "baseline" }}>
+          <span className="label" style={{ color: "var(--dim)" }}>{String(k + 1).padStart(2, "0")}</span>
+          <div>
+            <div style={{ fontFamily: "var(--fh)", fontSize: 17, letterSpacing: "-0.01em" }}>{c.claim}</div>
+            <span className="state">{answers[c.id].verdict === "skip" ? "Skipped" : answers[c.id].recording_id && answers[c.id].note ? "Sent, with a voice note" : answers[c.id].recording_id ? "Sent as a voice note" : "Sent"}</span>
+          </div>
+        </div>
+      ))}
+      {card ? (
+        <div className="card" style={{ borderColor: "var(--ink)" }}>
+          <div className="meta"><span className="label">Question {String(done.length + 1).padStart(2, "0")} of {cards.length}</span><span className="label" style={{ color: "var(--dim)" }}>{cards.length - done.length - 1 > 0 ? `${cards.length - done.length - 1} more after this` : "Last one"}</span></div>
+          <p className="claim">{card.claim}</p>
+          {card.why ? <p className="why">{card.why}</p> : null}
+          <p className="state" style={{ marginTop: 14 }}>Write it or record it in your own voice. Any language, half sentences are fine. No ChatGPT, we want you.</p>
+          <div className="fix" style={{ marginTop: 10 }}>
+            <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Type here, or just press Record" maxLength={2000} rows={3} disabled={sending || mine} style={{ width: "100%", padding: "12px 14px", border: "1px solid var(--line)", font: "inherit", fontSize: 16, resize: "vertical", background: "#fff" }} />
+            <div className="row" style={{ marginTop: 10, alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+              <button className={`btn ghost recbtn ${mine ? "on" : ""}`} type="button" onClick={record} disabled={sending || rec.uploading || (rec.recording !== "" && !mine)}>{mine ? `Stop · ${fmt(rec.recSecs)}` : voice ? "Record again" : "Record"}</button>
+              {rec.uploading && !mine ? <span className="state">Saving</span> : voice && !mine ? <span className="state">Voice note ready</span> : null}
+              <span style={{ flex: 1 }} />
+              <button className="btn" type="button" onClick={() => send(false)} disabled={sending || mine || rec.uploading}>{sending ? "Sending" : "Send"}</button>
+            </div>
+            {voice ? <audio controls preload="metadata" src={voice.url} style={{ marginTop: 8 }} /> : null}
+          </div>
+          <div className="navrow" style={{ justifyContent: "flex-end" }}>
+            <button className="btn link" type="button" onClick={() => send(true)} disabled={sending || mine}>Skip this one</button>
+          </div>
+        </div>
+      ) : (
+        <div className="done">
+          <h3>That is <span className="acc">everything</span> for shoot {shootNumber}.</h3>
+          <p>All {cards.length} with us. We plan the day from here.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ---------- the page ---------- */
 
 export default function Handshake({ client, questionnaire, shoot, shoots, initialAsks, initialAnswers, initialRecordings, initialPhotos, supabaseUrl, supabaseAnon }: Props) {
@@ -178,10 +255,8 @@ export default function Handshake({ client, questionnaire, shoot, shoots, initia
   const s = shoot && shoot.live ? shoot : null;
   const qCards = q ? q.config.cards : [];
   const sCards = s ? s.config.cards : [];
-  const prompts = s ? s.config.prompts : [];
   const references = s ? s.config.references || [] : [];
   const shootOptions = s ? s.config.shootOptions : [];
-  const secondsPerPrompt = s?.config.secondsPerPrompt || 90;
   // Photo asks from whichever rounds are live, each tied to its round.
   const photoAsks: { prompt: string; roundId: string }[] = [
     ...(q ? (q.config.photoAsks || []).map((p) => ({ prompt: p, roundId: q.id })) : []),
@@ -198,9 +273,6 @@ export default function Handshake({ client, questionnaire, shoot, shoots, initia
   const [uploading, setUploading] = useState(false);
   const [days, setDays] = useState<string[]>(client.shoot_days || []);
   const [toast, setToast] = useState("");
-  const [liveIdx, setLiveIdx] = useState(0);
-  const [liveProg, setLiveProg] = useState(0);
-  const [driveUrl, setDriveUrl] = useState<string | null>(null);
   const [asks, setAsks] = useState<AskItem[]>(initialAsks);
   const [askText, setAskText] = useState<Record<string, string>>({});
   const [askRec, setAskRec] = useState<Record<string, { id: string; url: string }>>({});
@@ -211,15 +283,11 @@ export default function Handshake({ client, questionnaire, shoot, shoots, initia
   const recorder = useRef<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
   const startedAt = useRef(0);
-  const promptStartedAt = useRef(0);
   const timer = useRef<number | null>(null);
-  const wake = useRef<WakeLockSentinel | null>(null);
   const toastTimer = useRef<number | null>(null);
-  const liveIdxRef = useRef(0);
 
   const qDone = qCards.length > 0 && qAnswered >= qCards.length;
   const sDone = sCards.length === 0 || sAnswered >= sCards.length;
-  const driveRec = s ? recs.find((r) => r.kind === "drive" && r.round_id === s.id) : undefined;
   const openAsks = asks.filter((a) => a.status === "open");
   const plan = shoot?.plan || {};
   const checklist = plan.checklist || [];
@@ -241,10 +309,9 @@ export default function Handshake({ client, questionnaire, shoot, shoots, initia
     if (shoot && planStatus === "accepted" && checklist.length && ticked.length < checklist.length) return { line: `Shoot ${shoot.number}${plan.date ? ` is ${plan.date}` : ""}. Tick the list the day before.`, href: "#plan", cta: "Open the list" };
     if (shoot && planStatus === "accepted") return { line: `Shoot ${shoot.number}${plan.date ? `: ${plan.date}` : ""}. We will message you the morning before.` };
     if (q && !qDone) return { line: qAnswered > 0 ? `Finish the cards. ${qCards.length - qAnswered} left.` : `Tap through ${qCards.length} cards. About three minutes.`, href: "#cards", cta: qAnswered > 0 ? "Continue" : "Start" };
-    if (s && !sDone) return { line: sAnswered > 0 ? `Finish the questions for shoot ${s.number}. ${sCards.length - sAnswered} left.` : `${sCards.length} quick questions before shoot ${s.number}.`, href: "#questions", cta: sAnswered > 0 ? "Continue" : "Start" };
-    if (s && prompts.length && !driveRec) return { line: "Ten minutes on your next drive.", href: "#drive", cta: "Go to the drive" };
+    if (s && !sDone) return { line: sAnswered > 0 ? `Finish the questions for shoot ${s.number}. ${sCards.length - sAnswered} left.` : `Read what we are going for, then ${sCards.length} questions. Type or talk.`, href: sAnswered > 0 ? "#questions" : "#going", cta: sAnswered > 0 ? "Continue" : "Start" };
     if ((q || s) && photosNeeded.length) return { line: photosNeeded.length === 1 ? "One photo and you are done." : `${photosNeeded.length} photos and you are done.`, href: "#photos", cta: "Send photos" };
-    if (s && shootOptions.length && !days.length) return { line: "Pick the days that could work for the shoot.", href: "#drive", cta: "Pick days" };
+    if (s && shootOptions.length && !days.length) return { line: "Pick the days that could work for the shoot.", href: "#days", cta: "Pick days" };
     if (q || s) return { line: "Done. Nothing else needed this week." };
     return { line: "Nothing to do right now. We are working on our side." };
   }
@@ -277,7 +344,7 @@ export default function Handshake({ client, questionnaire, shoot, shoots, initia
   }
 
   function canRecord() { return !!(navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === "function" && typeof MediaRecorder !== "undefined"); }
-  async function upload(kind: "fix" | "drive" | "answer", blob: Blob, secs: number, cardId: string | null, roundId: string): Promise<string | null> {
+  async function upload(kind: "fix" | "answer", blob: Blob, secs: number, cardId: string | null, roundId: string): Promise<string | null> {
     setUploading(true);
     try {
       const mime = blob.type || "audio/webm";
@@ -286,7 +353,7 @@ export default function Handshake({ client, questionnaire, shoot, shoots, initia
       const { error } = await sb.storage.from("recordings").uploadToSignedUrl(path, token, blob, { contentType: mime });
       if (error) throw error;
       await post("recording", { recordingId, duration: secs }, roundId);
-      setRecs((r) => [{ id: recordingId, round_id: roundId, kind, card_id: cardId, duration_secs: secs }, ...r.filter((x) => !(kind === "drive" && x.kind === "drive" && x.round_id === roundId))]);
+      setRecs((r) => [{ id: recordingId, round_id: roundId, kind, card_id: cardId, duration_secs: secs }, ...r]);
       return recordingId;
     } catch (e) { console.error(e); say("Upload failed. Keep the page open and try again."); return null; } finally { setUploading(false); }
   }
@@ -304,30 +371,19 @@ export default function Handshake({ client, questionnaire, shoot, shoots, initia
         const secs = Math.round((Date.now() - startedAt.current) / 1000);
         const blob = new Blob(chunks.current, { type: mr.mimeType || mime || "audio/webm" });
         setRecording(""); setActiveId(null);
-        if (wake.current) { try { await wake.current.release(); } catch {} wake.current = null; }
         if (secs < 2) return;
         const url = URL.createObjectURL(blob);
         if (kind === "card") { const id = await upload("fix", blob, secs, opts.cardId || null, opts.roundId); if (id && opts.onDone) await opts.onDone(id, url); }
         else if (kind === "ask") { const id = await upload("answer", blob, secs, opts.askId || null, opts.roundId); if (id && opts.askId) { setAskRec((m) => ({ ...m, [opts.askId!]: { id, url } })); say("Got it. Press Send when you are ready."); } }
-        else { setDriveUrl(url); const id = await upload("drive", blob, secs, null, opts.roundId); if (id) say("Done. It is with us."); }
       };
-      mr.start(1000); recorder.current = mr; startedAt.current = Date.now(); promptStartedAt.current = Date.now();
+      mr.start(1000); recorder.current = mr; startedAt.current = Date.now();
       setRecSecs(0); setRecording(kind); setActiveId(opts.cardId || opts.askId || null);
-      if (kind === "drive") { liveIdxRef.current = 0; setLiveIdx(0); setLiveProg(0); try { if ("wakeLock" in navigator) wake.current = await navigator.wakeLock.request("screen"); } catch {} }
-      timer.current = window.setInterval(() => {
-        setRecSecs(Math.round((Date.now() - startedAt.current) / 1000));
-        if (kind === "drive") { const el = (Date.now() - promptStartedAt.current) / 1000; setLiveProg(Math.min(100, Math.round((100 * el) / secondsPerPrompt))); if (el >= secondsPerPrompt) nextPrompt(); }
-      }, 500);
+      timer.current = window.setInterval(() => setRecSecs(Math.round((Date.now() - startedAt.current) / 1000)), 500);
     } catch { say("Microphone blocked. Allow it in your browser, or use WhatsApp."); }
   }
   function stopRecording() { const mr = recorder.current; if (mr && mr.state !== "inactive") mr.stop(); else { setRecording(""); setActiveId(null); } }
   const rec: Recorder = { recording, activeId, recSecs, uploading, start: startRecording, stop: stopRecording };
 
-  async function redoDrive() {
-    if (!s || !driveRec) return;
-    try { await post("recording/delete", { recordingId: driveRec.id }, s.id); setRecs((r) => r.filter((x) => x.id !== driveRec.id)); if (driveUrl) URL.revokeObjectURL(driveUrl); setDriveUrl(null); say("Cleared. Start the drive whenever you are ready."); } catch { say("Could not clear it. Check your connection."); }
-  }
-  function nextPrompt() { const k = liveIdxRef.current + 1; if (k >= prompts.length) { stopRecording(); return; } liveIdxRef.current = k; setLiveIdx(k); promptStartedAt.current = Date.now(); setLiveProg(0); }
 
   async function sendPhoto(prompt: string, roundId: string, file: File) {
     setPhotoBusy(prompt);
@@ -349,7 +405,6 @@ export default function Handshake({ client, questionnaire, shoot, shoots, initia
   useEffect(() => () => { if (timer.current) window.clearInterval(timer.current); }, []);
 
   const wa = (text: string) => `https://wa.me/${client.wa_number || ""}?text=${encodeURIComponent(text)}`;
-  const driveWa = wa(`Drive notes from ${client.first_name}. Sending them one by one:\n` + prompts.map((p, k) => `${k + 1}. ${p.q}`).join("\n"));
   const stageWord = (x: ShootStage) => (x === "done" ? "done" : x === "confirmed" ? "locked" : x === "planned" ? "planned" : x === "answered" ? "answered" : x === "live" ? "now" : "soon");
   let section = 0;
   const num = () => `( 0${++section} )`;
@@ -429,9 +484,33 @@ export default function Handshake({ client, questionnaire, shoot, shoots, initia
           <div className="in">
             <div className="head"><span className="label">{num()}</span><div><h2>Is this <span className="acc">you?</span></h2><p>{q.config.intro} Two taps per card. Add your voice if you want to.</p></div></div>
             <CardDeck roundId={q.id} cards={qCards} initial={initialAnswers.filter((a) => a.round_id === q.id)} rec={rec} post={post} say={say} onCount={setQAnswered}
-              doneLine={s && sCards.length && !sDone ? `Next, a few questions before shoot ${s.number}.` : s && prompts.length && !driveRec ? " Next, ten minutes on your next drive." : photosNeeded.length ? "One more thing: a photo or two." : "That is the homework done."}
-              doneHref={s && sCards.length && !sDone ? "#questions" : s && prompts.length && !driveRec ? "#drive" : photosNeeded.length ? "#photos" : undefined}
-              doneCta={s && sCards.length && !sDone ? "Go to the questions" : s && prompts.length && !driveRec ? "Go to the drive" : "Send photos"} />
+              doneLine={s && sCards.length && !sDone ? `Next, shoot ${s.number}.` : photosNeeded.length ? "One more thing: a photo or two." : "That is the homework done."}
+              doneHref={s && sCards.length && !sDone ? "#going" : photosNeeded.length ? "#photos" : undefined}
+              doneCta={s && sCards.length && !sDone ? "Go to the shoot" : "Send photos"} />
+          </div>
+        </section>
+      ) : null}
+
+      {s && (references.length || s.config.intro) ? (
+        <section className="band" id="going">
+          <div className="in">
+            <div className="head"><span className="label">{num()}</span><div><h2>Shoot {s.number}. What we are <span className="acc">going for.</span></h2>{s.config.intro ? <p style={{ fontSize: "clamp(17px, 2.4vw, 20px)" }}>{s.config.intro}</p> : null}</div></div>
+            {references.length ? (
+              <div style={{ display: "grid", gap: 12 }}>
+                {references.map((r, k) => (
+                  <a key={k} className="card" href={r.url} target="_blank" rel="noopener" style={{ display: "grid", gridTemplateColumns: isImage(r.url) ? "96px 1fr" : "1fr", gap: 16, alignItems: "center", textDecoration: "none", color: "inherit" }}>
+                    {isImage(r.url) ? <img src={r.url} alt="" style={{ width: 96, height: 96, objectFit: "cover", background: "var(--grey)" }} /> : null}
+                    <div>
+                      <div className="meta" style={{ marginBottom: 6 }}><span className="label">{String(k + 1).padStart(2, "0")} · {host(r.url).includes("instagram") ? "Reel" : host(r.url).includes("google") ? "Drive" : host(r.url) || "Link"}</span></div>
+                      <p className="claim" style={{ fontSize: "clamp(20px, 3.2vw, 26px)", marginTop: 0 }}>{r.title}</p>
+                      {r.note ? <p className="why" style={{ marginTop: 6 }}>{r.note}</p> : null}
+                      <span className="btn link" style={{ marginTop: 10, display: "inline-flex" }}>Open</span>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            ) : null}
+            {sCards.length && !sDone ? <div style={{ marginTop: 22 }}><a className="btn" href="#questions">Now the questions</a></div> : null}
           </div>
         </section>
       ) : null}
@@ -439,67 +518,17 @@ export default function Handshake({ client, questionnaire, shoot, shoots, initia
       {s && sCards.length ? (
         <section className="band grey" id="questions">
           <div className="in">
-            <div className="head"><span className="label">{num()}</span><div><h2>Before shoot <span className="acc">{s.number}.</span></h2><p>{s.config.intro}{sCards.every((c) => c.kind === "question") ? " Any language." : sCards.every((c) => (c.kind || "claim") === "claim") ? " Two taps per card. Add your voice if you want to." : ""}</p></div></div>
-            <CardDeck roundId={s.id} cards={sCards} initial={initialAnswers.filter((a) => a.round_id === s.id)} rec={rec} post={post} say={say} onCount={setSAnswered}
-              doneLine={prompts.length && !driveRec ? "Next, ten minutes on your next drive." : photosNeeded.length ? "One more thing: a photo or two." : ""}
-              doneHref={prompts.length && !driveRec ? "#drive" : photosNeeded.length ? "#photos" : undefined}
-              doneCta={prompts.length && !driveRec ? "Go to the drive" : "Send photos"} />
+            <div className="head"><span className="label">{num()}</span><div><h2>A few <span className="acc">questions.</span></h2><p>One at a time. Type it or record it, press Send, the next one comes up. Once it is sent it is with us, so say it how you would say it.</p></div></div>
+            <OneAtATime roundId={s.id} cards={sCards} initial={initialAnswers.filter((a) => a.round_id === s.id)} rec={rec} post={post} say={say} onCount={setSAnswered} shootNumber={s.number} />
           </div>
         </section>
       ) : null}
 
-      {s && (prompts.length || shootOptions.length) ? (
-        <section className="band dark" id="drive">
+      {s && shootOptions.length ? (
+        <section className="band dark" id="days">
           <div className="in">
-            {prompts.length ? (
-              <>
-                <div className="head"><span className="label">{num()}</span><div><h2>Drive and <span className="acc">talk.</span></h2><p style={{ color: "var(--dim)" }}>Next time you are in the car, press Start the drive, put the phone in the cradle, and talk. We show you one thing to talk about at a time and move on by ourselves. One recording, no stopping and starting. Hindi, Punjabi, English or a mix, whatever comes out. Leave out client names, addresses and sale prices. If something is for our ears only, say background only and we keep it that way.</p></div></div>
-                <div className="drive">
-                  <div className="prompts">{prompts.map((p, k) => <span key={k}><b>{k + 1}. </b>{p.q}</span>)}</div>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                    <button className="btn" type="button" onClick={() => startRecording("drive", { roundId: s.id })} disabled={!!driveRec || uploading || recording !== ""}>{driveRec ? "Drive done" : "Start the drive"}</button>
-                    {client.wa_number ? <a className="btn ghost" href={driveWa} target="_blank" rel="noopener">Or voice notes on WhatsApp</a> : null}
-                    {driveRec ? <span className="state">{fmt(driveRec.duration_secs)} recorded</span> : null}
-                    {uploading && recording === "" ? <span className="state">Sending</span> : null}
-                  </div>
-                  {driveRec ? (
-                    <div style={{ display: "grid", gap: 8 }}>
-                      <span className="label" style={{ color: "var(--dim)" }}>Your drive{driveUrl ? "" : " is with us"}</span>
-                      {driveUrl ? <audio controls preload="metadata" src={driveUrl} /> : null}
-                      <button className="btn link" type="button" style={{ justifySelf: "start" }} onClick={redoDrive} disabled={uploading}>Record it again</button>
-                    </div>
-                  ) : null}
-                </div>
-              </>
-            ) : null}
-            {shootOptions.length ? (
-              <div style={{ marginTop: prompts.length ? 28 : 0 }}>
-                {!prompts.length ? <div className="head"><span className="label">{num()}</span><div><h2>Which <span className="acc">day?</span></h2></div></div> : null}
-                <span className="label" style={{ color: "var(--dim)", display: "block", marginBottom: 10 }}>Which days could work for this shoot? Tap all that do.</span>
-                <div className="chips">{shootOptions.map((d) => <button key={d} className="chip" type="button" aria-pressed={days.includes(d)} onClick={() => toggleDay(d)}>{d}</button>)}</div>
-              </div>
-            ) : null}
-          </div>
-        </section>
-      ) : null}
-
-      {s && references.length ? (
-        <section className="band" id="references">
-          <div className="in">
-            <div className="head"><span className="label">{num()}</span><div><h2>What we are <span className="acc">going for.</span></h2><p>A few references for shoot {s.number}. Nothing to do, just so the day makes sense when it comes. Watch them when you have a minute.</p></div></div>
-            <div style={{ display: "grid", gap: 12 }}>
-              {references.map((r, k) => (
-                <a key={k} className="card" href={r.url} target="_blank" rel="noopener" style={{ display: "grid", gridTemplateColumns: isImage(r.url) ? "96px 1fr" : "1fr", gap: 16, alignItems: "center", textDecoration: "none", color: "inherit" }}>
-                  {isImage(r.url) ? <img src={r.url} alt="" style={{ width: 96, height: 96, objectFit: "cover", background: "var(--grey)" }} /> : null}
-                  <div>
-                    <div className="meta" style={{ marginBottom: 6 }}><span className="label">{String(k + 1).padStart(2, "0")} · {host(r.url).includes("instagram") ? "Reel" : host(r.url) || "Link"}</span></div>
-                    <p className="claim" style={{ fontSize: "clamp(20px, 3.2vw, 26px)", marginTop: 0 }}>{r.title}</p>
-                    {r.note ? <p className="why" style={{ marginTop: 6 }}>{r.note}</p> : null}
-                    <span className="btn link" style={{ marginTop: 10, display: "inline-flex" }}>Open</span>
-                  </div>
-                </a>
-              ))}
-            </div>
+            <div className="head"><span className="label">{num()}</span><div><h2>Which <span className="acc">day?</span></h2><p style={{ color: "var(--dim)" }}>Tap all the days that could work for shoot {s.number}. We lock one and send you the plan.</p></div></div>
+            <div className="chips">{shootOptions.map((d) => <button key={d} className="chip" type="button" aria-pressed={days.includes(d)} onClick={() => toggleDay(d)}>{d}</button>)}</div>
           </div>
         </section>
       ) : null}
@@ -574,7 +603,7 @@ export default function Handshake({ client, questionnaire, shoot, shoots, initia
               <summary>What happens after</summary>
               <div className="stages">
                 <div className="stage"><span className="label">Day 3 to 7</span><div><b>We think.</b> Positioning, your two pillars, a 30-day plan, the first shoot plan. One 30-minute call with {who}, no prep.</div></div>
-                <div className="stage"><span className="label">Before each shoot</span><div><b>This page changes.</b> A few questions, ten minutes in the car, what we are going for, and the plan. One button: Works for me.</div></div>
+                <div className="stage"><span className="label">Before each shoot</span><div><b>This page changes.</b> What we are going for, a few questions you answer by typing or talking, and the plan. One button: Works for me.</div></div>
                 <div className="stage"><span className="label">Shoot days</span><div><b>You live the day, we film it.</b> Three shoots, each one planned from what you told us.</div></div>
                 <div className="stage"><span className="label">Every month</span><div><b>You capture, we build.</b> Stories almost every day, 12 to 15 reels a month. Check with us before reposting anything.</div></div>
               </div>
@@ -582,7 +611,7 @@ export default function Handshake({ client, questionnaire, shoot, shoots, initia
             <details>
               <summary>Your side, our side</summary>
               <div className="stages">
-                <div className="stage"><span className="label">Yours</span><div>Three minutes of cards. Ten minutes in the car before a shoot. One call. The shoot days. Drop clips in your folder when you remember.</div></div>
+                <div className="stage"><span className="label">Yours</span><div>Three minutes of cards. A few questions before each shoot, in your own words. One call. The shoot days. Drop clips in your folder when you remember.</div></div>
                 <div className="stage"><span className="label">Ours</span><div>Everything else. Research, positioning, planning, shooting, editing, captions, scheduling, and deciding what never gets posted.</div></div>
               </div>
             </details>
@@ -594,13 +623,6 @@ export default function Handshake({ client, questionnaire, shoot, shoots, initia
         <div className="in foot"><span className="label">Private page. Please do not share the link.</span><span className="label"><a href="https://instagram.com/callitnameless" target="_blank" rel="noopener">@callitnameless</a> &nbsp;·&nbsp; <a href="mailto:hello@thenameless.studio">hello@thenameless.studio</a></span></div>
       </footer>
 
-      {recording === "drive" && prompts.length ? (
-        <div className="live">
-          <div className="lt"><span className="rec">{fmt(recSecs)}</span><button className="btn ghost" type="button" onClick={stopRecording}>Finish</button></div>
-          <div className="lp"><span className="label">{liveIdx + 1} of {prompts.length}</span><p className="lq">{prompts[liveIdx].q}</p><p className="lh">{prompts[liveIdx].h}</p></div>
-          <div><div className="prog"><i style={{ width: `${liveProg}%` }} /></div><div className="lb"><span className="state" style={{ color: "var(--dim)" }}>Moves on by itself. Tap Next if you are done early.</span><button className="btn" type="button" onClick={nextPrompt}>{liveIdx + 1 >= prompts.length ? "Finish" : "Next"}</button></div></div>
-        </div>
-      ) : null}
       <div className={`toast ${toast ? "show" : ""}`} role="status" aria-live="polite">{toast}</div>
     </div>
   );

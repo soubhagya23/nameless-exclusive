@@ -33,20 +33,19 @@ export const defaultQuestionnaire: RoundConfig = {
 };
 
 export const defaultShoot1: RoundConfig = {
-  lede: "Ten minutes in the car, a photo or two, and pick a day. We do the rest.",
-  intro: "",
-  secondsPerPrompt: 75,
-  cards: [],
-  prompts: [
-    { q: "The moment real estate became serious for you.", h: "One turning point. Then how it still shows up in the way you work." },
-    { q: "A deal or a client decision that got difficult.", h: "What was at stake, what you did, what happened. A trade-off, or something you could not control." },
-    { q: "The experience that changed how you take responsibility.", h: "For a client or a team. What you learned, what you do differently now." },
-    { q: "A working day people rarely see.", h: "A recent one. What happened before or after the inspections, calls or auctions. A moment your judgment mattered." },
-    { q: "A client moment that shows what you bring.", h: "A handover, a hard conversation, a referral. What you did and any feedback you actually got." },
-    { q: "Optional. A setback that changed how you work.", h: "Only the part you are comfortable with, and what changed after. Tap Next to skip." },
-    { q: "Optional. An early moment in this city that explains who you are today.", h: "Belonging, ambition, finding your place. Leave it out if it feels too personal. Tap Next to skip." },
-    { q: "What should stay private.", h: "Family, history, opinions, filming situations you do not want. Say background only for anything we should hear but never use." },
+  lede: "A few questions, a photo or two, and pick a day. We do the rest.",
+  intro: "The first shoot is about you, not the business. We want the story of how you got here and the way you actually work, so the first reels feel like a person, not a brand.",
+  cards: [
+    { id: "the-moment-real-estate", kind: "question", claim: "The moment real estate became serious for you.", why: "One turning point. Then how it still shows up in the way you work." },
+    { id: "a-deal-or-a", kind: "question", claim: "A deal or a client decision that got difficult.", why: "What was at stake, what you did, what happened. A trade-off, or something you could not control." },
+    { id: "the-experience-that-changed", kind: "question", claim: "The experience that changed how you take responsibility.", why: "For a client or a team. What you learned, what you do differently now." },
+    { id: "a-working-day-people", kind: "question", claim: "A working day people rarely see.", why: "A recent one. What happened before or after the inspections, calls or auctions. A moment your judgment mattered." },
+    { id: "a-client-moment-that", kind: "question", claim: "A client moment that shows what you bring.", why: "A handover, a hard conversation, a referral. What you did and any feedback you actually got." },
+    { id: "a-setback-that-changed", kind: "question", claim: "Optional. A setback that changed how you work.", why: "Only the part you are comfortable with, and what changed after. Skip it if you like." },
+    { id: "an-early-moment-in", kind: "question", claim: "Optional. An early moment in this city that explains who you are today.", why: "Belonging, ambition, finding your place. Leave it out if it feels too personal. Skip it if you like." },
+    { id: "what-should-stay-private", kind: "question", claim: "What should stay private.", why: "Family, history, opinions, filming situations you do not want. Say background only for anything we should hear but never use." }
   ],
+  prompts: [],
   shootOptions: [],
   photoAsks: ["A photo of a listing we could film at"],
   references: [],
@@ -75,20 +74,19 @@ export const jatinQuestionnaire: RoundConfig = {
 };
 
 export const jatinShoot1: RoundConfig = {
-  lede: "Ten minutes in the car, a photo of a listing, and pick a day. We do the rest.",
-  intro: "",
-  secondsPerPrompt: 75,
-  cards: [],
-  prompts: [
-    { q: "The moment real estate became serious for you.", h: "One turning point. Then how it still shows up in the way you work." },
-    { q: "A deal or a client decision that got difficult.", h: "What was at stake, what you did, what happened. A trade-off, or something you could not control." },
-    { q: "The experience that changed how you take responsibility.", h: "For a client or the team. If working with Ravi is part of it, what you learned and what you do differently now." },
-    { q: "A working day people rarely see.", h: "A recent one. What happened before or after the inspections, calls or auctions. A moment your judgment mattered." },
-    { q: "A client moment that shows what you bring.", h: "A key handover, a hard conversation, a referral. What you did and any feedback you actually got." },
-    { q: "Optional. A setback that changed how you work.", h: "Only the part you are comfortable with, and what changed after. Tap Next to skip." },
-    { q: "Optional. An early moment in Melbourne that explains who you are today.", h: "Belonging, ambition, finding your place. Leave it out if it feels too personal. Tap Next to skip." },
-    { q: "What should stay private.", h: "Family, history, opinions, filming situations you do not want. Say background only for anything we should hear but never use." },
+  lede: "A few questions, a photo of a listing, and pick a day. We do the rest.",
+  intro: "The first shoot is about you, not the listings. We want the story of how you got here and the way you actually work, so the first reels feel like a person, not an agency.",
+  cards: [
+    { id: "the-moment-real-estate", kind: "question", claim: "The moment real estate became serious for you.", why: "One turning point. Then how it still shows up in the way you work." },
+    { id: "a-deal-or-a", kind: "question", claim: "A deal or a client decision that got difficult.", why: "What was at stake, what you did, what happened. A trade-off, or something you could not control." },
+    { id: "the-experience-that-changed", kind: "question", claim: "The experience that changed how you take responsibility.", why: "For a client or the team. If working with Ravi is part of it, what you learned and what you do differently now." },
+    { id: "a-working-day-people", kind: "question", claim: "A working day people rarely see.", why: "A recent one. What happened before or after the inspections, calls or auctions. A moment your judgment mattered." },
+    { id: "a-client-moment-that", kind: "question", claim: "A client moment that shows what you bring.", why: "A key handover, a hard conversation, a referral. What you did and any feedback you actually got." },
+    { id: "a-setback-that-changed", kind: "question", claim: "Optional. A setback that changed how you work.", why: "Only the part you are comfortable with, and what changed after. Skip it if you like." },
+    { id: "an-early-moment-in", kind: "question", claim: "Optional. An early moment in Melbourne that explains who you are today.", why: "Belonging, ambition, finding your place. Leave it out if it feels too personal. Skip it if you like." },
+    { id: "what-should-stay-private", kind: "question", claim: "What should stay private.", why: "Family, history, opinions, filming situations you do not want. Say background only for anything we should hear but never use." }
   ],
+  prompts: [],
   shootOptions: ["Sat 15 Nov", "Tue 18 Nov", "Sat 22 Nov"],
   photoAsks: ["A photo of a listing we could film at"],
   references: [],
@@ -124,19 +122,18 @@ export const akshayQuestionnaire: RoundConfig = {
 };
 
 export const akshayShoot1: RoundConfig = {
-  lede: "Ten minutes in the car, a photo or two, and pick a day. The team does the rest.",
-  intro: "",
-  secondsPerPrompt: 75,
-  cards: [],
-  prompts: [
-    { q: "The day you decided to step out of the store.", h: "What you were doing, what you were tired of, what you wanted instead. How it still shows up in how you work." },
-    { q: "A decision at 30 Minutes Fix that got hard.", h: "A location, a hire, a bad month. What was at stake, what you did, what happened. Something you could not control." },
-    { q: "What most business owners get wrong about branding.", h: "Say it the way you would to a friend over coffee, not to a camera." },
-    { q: "The Dropshieldz story so far.", h: "Why you started it, what is scary about it, where it is up to this week." },
-    { q: "The studio, in your words.", h: "Why no name. Who it is for. What you refuse to do." },
-    { q: "Optional. India, Dubai, Melbourne. One moment from the move that explains you.", h: "Belonging, ambition, being new somewhere. Leave it out if it feels too personal. Tap Next to skip." },
-    { q: "What should stay private.", h: "People, money, history, filming situations you do not want. Say background only for anything we hear but never use." },
+  lede: "A few questions, a photo or two, and pick a day. The team does the rest.",
+  intro: "The first shoot is the founder, not the businesses. The store, the desk, the car, the transition. We want it to feel documented, not produced.",
+  cards: [
+    { id: "the-day-you-decided", kind: "question", claim: "The day you decided to step out of the store.", why: "What you were doing, what you were tired of, what you wanted instead. How it still shows up in how you work." },
+    { id: "a-decision-at-30", kind: "question", claim: "A decision at 30 Minutes Fix that got hard.", why: "A location, a hire, a bad month. What was at stake, what you did, what happened. Something you could not control." },
+    { id: "what-most-business-owners", kind: "question", claim: "What most business owners get wrong about branding.", why: "Say it the way you would to a friend over coffee, not to a camera." },
+    { id: "the-dropshieldz-story-so", kind: "question", claim: "The Dropshieldz story so far.", why: "Why you started it, what is scary about it, where it is up to this week." },
+    { id: "the-studio-in-your", kind: "question", claim: "The studio, in your words.", why: "Why no name. Who it is for. What you refuse to do." },
+    { id: "india-dubai-melbourne-one", kind: "question", claim: "Optional. India, Dubai, Melbourne. One moment from the move that explains you.", why: "Belonging, ambition, being new somewhere. Leave it out if it feels too personal. Skip it if you like." },
+    { id: "what-should-stay-private", kind: "question", claim: "What should stay private.", why: "People, money, history, filming situations you do not want. Say background only for anything we hear but never use." }
   ],
+  prompts: [],
   shootOptions: ["Sat 15 Nov", "Tue 18 Nov", "Sat 22 Nov"],
   photoAsks: ["A photo from inside one of the stores, any one"],
   references: [],
@@ -145,17 +142,16 @@ export const akshayShoot1: RoundConfig = {
 /** Starting point for shoot 2 and 3 when the AI draft is not used. Short: what changed, what to film next. */
 export const followUpRound: RoundConfig = {
   lede: "The last shoot is in. A few quick things before the next one, so we film the right day.",
-  intro: "Questions first, in your voice. Then a few cards to tap.",
+  intro: "This one is about the week itself. We want to be where the real moments happen, so tell us what is coming.",
   secondsPerPrompt: 60,
   cards: [
     { id: "day", kind: "question", claim: "Walk us through a normal working day in the week of the shoot, start to finish.", why: "Where you are at 7, at 11, at 4, at 8. Where the day actually goes. We plan the shoot around it." },
     { id: "moments", kind: "question", claim: "What is coming up in the next two weeks that we should film?", why: "An inspection, an auction, a handover, a meeting. Dates if you know them." },
     { id: "feedback", kind: "question", claim: "What did people say about the reels so far?", why: "Clients, friends, other agents. The exact words if you remember them." },
     { id: "more-less", kind: "question", claim: "What do you want more of, and less of, next time?", why: "Be blunt. This is how the next shoot gets better." },
-    { id: "feel", claim: "The reels so far feel like you, not like an ad.", why: "If they do not, we change the direction, not the volume." },
-    { id: "comfort", claim: "You are more comfortable on camera than on the first shoot day.", why: "We push a little further each time, never a lot." },
-    { id: "next-listing", claim: "There is at least one listing we can film at next time.", why: "Keys, light, a walkthrough. Send a photo below." },
-    { id: "client-on-camera", claim: "A happy client would be fine saying a few words on camera.", why: "Two sentences is enough. We ask them, not you." },
+    { id: "feel", kind: "question", claim: "Do the reels so far feel like you?", why: "If they do not, say what is off. We change the direction, not the volume." },
+    { id: "next-listing", kind: "question", claim: "Is there a listing we can film at next time?", why: "Keys, light, a walkthrough. Send a photo below." },
+    { id: "client-on-camera", kind: "question", claim: "Is there a happy client who would say a few words on camera?", why: "Two sentences is enough. We ask them, not you." },
   ],
   prompts: [],
   shootOptions: [],

@@ -5,7 +5,7 @@ Everything below is a one-time job. About twenty minutes. Do it in order.
 ## 1. Supabase (database, storage, HQ login)
 
 1. supabase.com → New project. Name `nameless`, region Sydney. Save the database password somewhere safe (you will not need it day to day).
-2. When it is ready: **SQL Editor → New query**. Open `supabase/schema.sql` from this repo, paste everything, **Run**. Then do the same with every file in `supabase/migrations/`, in number order (002, 003, 004, 007, then 008 for Jatin and Akshay). Together they create the tables, the rounds model and the private `recordings` bucket.
+2. When it is ready: **SQL Editor → New query**. Open `supabase/schema.sql` from this repo, paste everything, **Run**. Then do the same with every file in `supabase/migrations/`, in number order (002, 003, 004, 007, 008, 009). Together they create the tables, the rounds model and the private `recordings` bucket.
 3. **Authentication → URL Configuration**:
    - Site URL: `https://hq.thenameless.studio`
    - Redirect URLs, add both: `https://hq.thenameless.studio/auth/callback` and `https://*.vercel.app/auth/callback`
@@ -34,6 +34,7 @@ Put a small amount of credit on each. A full handshake costs well under a dollar
 | `HQ_ALLOWED_EMAILS` | `hello@thenameless.studio,ranjansoubhagya.master@gmail.com` plus Akshay's email, comma separated, no spaces |
 | `CLIENT_HOST` | `exclusive.thenameless.studio` |
 | `HQ_HOST` | `hq.thenameless.studio` |
+| `HQ_TEAM` | `Soubh,Akshay,Pranshee` (names on the board, optional) |
 | `INTERNAL_SECRET` | any long random string |
 
 3. Deploy. First build takes about two minutes.
@@ -64,12 +65,14 @@ The flow is: client onboarded → questionnaire → brief → shoots.
 - **Onboard:** HQ → New client → check the questionnaire cards for the person → Create. Nothing reaches him yet. Shoot 1 is drafted alongside, as a draft.
 - **Send the questionnaire:** on his HQ page, the Questionnaire tab → **Send to him** → **Copy the WhatsApp** and paste it. He taps the cards (This is me / Not quite, voice note if he wants) and sends the photo you asked for. It lands in HQ as it happens.
 - **Brief:** once the cards are in, **Write the first draft**. Edit it. That is the client brief; every later draft builds on it.
-- **Shoot 1:** the Shoot 1 tab → **Edit what he sees**: the drive prompts chosen for this shoot, any questions, the content references (reel links, images, a folder) he should watch, the photo asks, the day options → **Send to him**. His page now shows the drive, "What we are going for", photos and the days.
+- **Shoot 1:** the Shoot 1 tab → **Edit what he sees**: what we are trying to do on this shoot (he reads it first), the content references (reel links, images, a folder), the questions for this shoot, the photo asks, the day options → **Send to him**. His page shows "What we are going for", then the questions one at a time (he types or records, presses Send, the next one appears, no going back), then the days and photos.
 - **Plan it:** fill the Shoot plan form → **Send plan to his page**. He taps Works for me and ticks the day-before list.
 - **Shoot 2 and 3:** **New shoot** → Draft with AI from what we know (first question is his day in the week of the shoot) → add references → Send. Same link, the page changes.
 - Need more from him at any point: **Ask him something**. It appears under "From Akshay".
 - Quiet client: his tile turns amber after 48 hours with nothing answered, with a one-tap nudge to paste.
 - Starting over after a test: **Reset everything** on his HQ page (questionnaire back to live, shoots back to draft, all answers gone).
+- **Board** (top nav): the team kanban. To do, In progress, Review, Done. Drag cards, click one to set who, which client, when. Everyone with an HQ login sees the same board.
+- **Links** (top nav): every Drive folder and shared link, grouped by client. Each client's HQ page shows theirs with an Add a link button.
 
 ## Local development
 

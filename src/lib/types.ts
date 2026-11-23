@@ -137,3 +137,32 @@ export type Event = {
   payload: Record<string, unknown>;
   created_at: string;
 };
+
+/** A card on the team board. */
+export type TaskStatus = "todo" | "doing" | "review" | "done";
+export type Task = {
+  id: string;
+  client_id: string | null;
+  title: string;
+  notes: string;
+  status: TaskStatus;
+  assignee: string;
+  due: string | null; // YYYY-MM-DD
+  position: number;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+/** A Drive folder or any link where assets live. */
+export type LinkCategory = "raw" | "edits" | "brand" | "docs" | "other";
+export type AssetLink = {
+  id: string;
+  client_id: string | null;
+  title: string;
+  url: string;
+  category: LinkCategory;
+  note: string;
+  created_by: string;
+  created_at: string;
+};

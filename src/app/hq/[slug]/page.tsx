@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getClientBySlug, getAnswers, getRecordings, getBriefs, getAsks, getPhotos, getEvents, listRounds, shootStage, questionnaireOf, shootsOf } from "@/lib/db";
+import { getClientBySlug, getAnswers, getRecordings, getBriefs, getAsks, getPhotos, getEvents, listRounds, shootStage, questionnaireOf, shootsOf, listLinks } from "@/lib/db";
+import LinkForm from "../links/link-form";
+import LinksList from "../links/links-list";
 import { msgShootLive, msgPlanSent, msgNudge, msgAsk } from "@/lib/whatsapp";
 import { actionGenerateBrief, actionRetranscribe, actionSaveBriefEdit, actionAsk, actionDeleteAsk, actionNewShoot, actionSendShoot, actionShootDone, actionReopenShoot, actionSavePlan, actionUnsendPlan } from "../actions";
 import ResetButton from "./reset-button";
@@ -35,7 +37,7 @@ export default async function ClientDetail({ params, searchParams }: { params: P
   const client = await getClientBySlug(slug);
   if (!client) notFound();
   const rounds = await listRounds(client.id);
-  const [allAnswers, recordings, briefs, asks, photos, events] = await Promise.all([getAnswers(client.id), getRecordings(client.id), getBriefs(client.id), getAsks(client.id), getPhotos(client.id), getEvents(client.id)]);
+  const [allAnswers, recordings, briefs, asks, photos, events, links] = await Promise.all([getAnswers(client.id), getRecordings(client.id), getBriefs(client.id), getAsks(client.id), getPhotos(client.id), getEvents(client.id), listLinks(client.id)]);
   const stages = Object.fromEntries(rounds.map((r) => [r.id, shootStage(r, allAnswers.filter((a) => a.round_id === r.id).length, recordings.some((x) => x.round_id === r.id && x.kind === "drive"))]));
   const questionnaire = questionnaireOf(rounds);
   const shoots = shootsOf(rounds);
@@ -149,9 +151,9 @@ export default async function ClientDetail({ params, searchParams }: { params: P
             </div>
             ) : null}
 
-            {shoot.config.prompts.length ? (
+            {drive ? (
               <div className="panel">
-                <h3>Drive and talk</h3>
+                <h3>Drive and talk (older shoot)</h3>
                 {!drive ? <p>Not recorded yet. He sees it as his next job once the cards are done.</p> : (
                   <div>
                     <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 10 }}>
@@ -162,7 +164,7 @@ export default async function ClientDetail({ params, searchParams }: { params: P
                     </div>
                     <audio controls preload="none" src={`/api/hq/audio/${drive.id}`} />
                     {drive.transcript ? <div className="transcript">{drive.transcript}</div> : drive.transcript_error ? <p className="notice err" style={{ marginTop: 10 }}>{drive.transcript_error}</p> : null}
-                    <p className="label" style={{ color: "var(--dim)", marginTop: 10 }}>Prompts he was shown: {shoot.config.prompts.map((p) => p.q).join(" / ")}</p>
+                    {shoot.config.prompts.length ? <p className="label" style={{ color: "var(--dim)", marginTop: 10 }}>Prompts he was shown: {shoot.config.prompts.map((p) => p.q).join(" / ")}</p> : null}
                   </div>
                 )}
               </div>
@@ -279,6 +281,15 @@ export default async function ClientDetail({ params, searchParams }: { params: P
                   <div className="actions"><button className="btn small" type="submit">Save edits</button>{briefs.length > 1 ? <span className="label" style={{ color: "var(--dim)" }}>{briefs.length} drafts kept</span> : null}</div>
                 </form>
               )}
+            </div>
+
+            <div className="panel">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+                <h3 style={{ marginBottom: 0 }}>Links · {links.length}</h3>
+                <a className="label" href="/hq/links" style={{ color: "var(--dim)" }}>all links</a>
+              </div>
+              <LinksList links={links} back={`/hq/${client.slug}`} />
+              <div style={{ marginTop: 12 }}><LinkForm clients={[]} clientId={client.id} back={`/hq/${client.slug}`} compact /></div>
             </div>
 
             <div className="panel">

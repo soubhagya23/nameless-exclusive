@@ -14,7 +14,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
   if (!round.config.cards.some((c) => c.id === card_id) || !["yes", "no", "skip"].includes(verdict)) {
     return NextResponse.json({ error: "bad request" }, { status: 400 });
   }
-  const note = String(body?.note || "").slice(0, 400);
+  const note = String(body?.note || "").slice(0, 2000);
   const recording_id = body?.recording_id ? String(body.recording_id) : null;
   const { error } = await supabaseAdmin()
     .from("card_answers")

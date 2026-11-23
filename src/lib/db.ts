@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "./supabase-admin";
-import type { Client, CardAnswer, Recording, Brief, Round, RoundConfig, Ask, Photo, Event, ShootPlan, ShootStage } from "./types";
+import type { Client, CardAnswer, Recording, Brief, Round, RoundConfig, Ask, Photo, Event, ShootPlan, ShootStage, Task, AssetLink } from "./types";
 import { defaultQuestionnaire } from "./templates";
 
 export async function getClientBySlug(slug: string): Promise<Client | null> {
@@ -120,4 +120,23 @@ function normaliseRound(row: Record<string, unknown>): Round {
     plan_status: (row.plan_status as Round["plan_status"]) || "none",
     checklist_done: Array.isArray(row.checklist_done) ? (row.checklist_done as string[]) : [],
   };
+}
+
+/* ---------- team board and links ---------- */
+
+export async function listTasks(): Promise<Task[]> {
+  const { data } = await supabaseAdmin().from("tasks").select("*").order("position", { ascending: true }).order("created_at", { ascending: true });
+  return (data || []) as Task[];
+}
+
+export async function listLinks(clientId?: string): Promise<AssetLink[]> {
+  let q = supabaseAdmin().from("links").select("*").order("created_at", { ascending: true });
+  if (clientId) q = q.eq("client_id", clientId);
+  const { data } = await q;
+  return (data || []) as AssetLink[];
+}
+
+/** The team names on the board. HQ_TEAM="Soubh,Akshay,Pranshee" in Vercel, else this default. */
+export function teamNames(): string[] {
+  return (process.env.HQ_TEAM || "Soubh,Akshay,Pranshee").split(",").map((s) => s.trim()).filter(Boolean);
 }
