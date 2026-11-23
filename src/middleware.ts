@@ -19,7 +19,7 @@ export async function middleware(req: NextRequest) {
     const url = req.nextUrl.clone();
     url.pathname = pathname === "/" ? "/c" : `/c${pathname}`;
     res = NextResponse.rewrite(url);
-  } else if (hqHost && host === hqHost && !pathname.startsWith("/hq") && !pathname.startsWith("/api/") && !pathname.startsWith("/auth/") && !pathname.startsWith("/login")) {
+  } else if (hqHost && host === hqHost && !pathname.startsWith("/hq") && !pathname.startsWith("/api/") && !pathname.startsWith("/auth/") && !pathname.startsWith("/login") && !pathname.startsWith("/guide")) {
     const url = req.nextUrl.clone();
     url.pathname = pathname === "/" ? "/hq" : `/hq${pathname}`;
     res = NextResponse.rewrite(url);
