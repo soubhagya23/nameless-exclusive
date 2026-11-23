@@ -83,8 +83,8 @@ export async function actionSaveRound(roundId: string, slug: string, formData: F
   try { config = cleanConfig(JSON.parse(String(formData.get("round") || "{}")), round.kind); } catch (e) { throw new Error(e instanceof Error ? e.message : "Not valid"); }
   const { error } = await supabaseAdmin().from("rounds").update({ title, config }).eq("id", roundId);
   if (error) throw new Error(error.message);
-  revalidatePath(`/hq/${slug}`);
-  redirect(`/hq/${slug}?s=${roundId}`);
+  revalidatePath(`/hq/${slug}`, "layout");
+  redirect(`/hq/${slug}/stage/${roundId}`);
 }
 
 /** New shoot: AI draft from everything we know, or the follow-up template. Always a draft until Send. */
@@ -104,7 +104,7 @@ export async function actionNewShoot(clientId: string, slug: string, formData: F
   const { data, error } = await supabaseAdmin().from("rounds").insert({ client_id: clientId, kind: "shoot", number, title: `Shoot ${number}`, status: "draft", config }).select("id").single();
   if (error || !data) throw new Error(error?.message || "insert failed");
   await logEvent(clientId, "shoot_drafted", { shoot: number, how, note });
-  revalidatePath(`/hq/${slug}`);
+  revalidatePath(`/hq/${slug}`, "layout");
   redirect(`/hq/${slug}/rounds/${data.id}${note ? "?note=" + encodeURIComponent(note) : ""}`);
 }
 
@@ -146,7 +146,7 @@ export async function actionSendShoot(roundId: string, slug: string) {
   }
   await sb.from("rounds").update({ status: "live", sent_at: new Date().toISOString() }).eq("id", roundId);
   await logEvent(round.client_id, round.kind === "questionnaire" ? "questionnaire_sent" : "shoot_sent", { shoot: round.number });
-  revalidatePath(`/hq/${slug}`); revalidatePath("/hq");
+  revalidatePath(`/hq/${slug}`, "layout"); revalidatePath("/hq");
 }
 
 export async function actionShootDone(roundId: string, slug: string) {
@@ -155,13 +155,13 @@ export async function actionShootDone(roundId: string, slug: string) {
   if (!round) return;
   await supabaseAdmin().from("rounds").update({ status: "done" }).eq("id", roundId);
   await logEvent(round.client_id, "shoot_done", { shoot: round.number });
-  revalidatePath(`/hq/${slug}`); revalidatePath("/hq");
+  revalidatePath(`/hq/${slug}`, "layout"); revalidatePath("/hq");
 }
 
 export async function actionReopenShoot(roundId: string, slug: string) {
   await guard();
   await supabaseAdmin().from("rounds").update({ status: "draft" }).eq("id", roundId);
-  revalidatePath(`/hq/${slug}`);
+  revalidatePath(`/hq/${slug}`, "layout");
 }
 
 export async function actionDeleteRound(roundId: string, slug: string) {
@@ -170,7 +170,7 @@ export async function actionDeleteRound(roundId: string, slug: string) {
   if (!round) return;
   if (round.status !== "draft" || round.kind !== "shoot") throw new Error("Only draft shoots can be deleted");
   await supabaseAdmin().from("rounds").delete().eq("id", roundId);
-  revalidatePath(`/hq/${slug}`);
+  revalidatePath(`/hq/${slug}`, "layout");
   redirect(`/hq/${slug}`);
 }
 
@@ -196,13 +196,13 @@ export async function actionSavePlan(roundId: string, slug: string, formData: Fo
   const sb = supabaseAdmin();
   await sb.from("rounds").update(patch).eq("id", roundId);
   if (send) { await sb.from("clients").update({ status: "plan" }).eq("id", round.client_id); await logEvent(round.client_id, "plan_sent", { shoot: round.number, date: plan.date }); }
-  revalidatePath(`/hq/${slug}`);
+  revalidatePath(`/hq/${slug}`, "layout");
 }
 
 export async function actionUnsendPlan(roundId: string, slug: string) {
   await guard();
   await supabaseAdmin().from("rounds").update({ plan_status: "none", plan_accepted_at: null, checklist_done: [] }).eq("id", roundId);
-  revalidatePath(`/hq/${slug}`);
+  revalidatePath(`/hq/${slug}`, "layout");
 }
 
 /* ---------- asks ---------- */
@@ -213,13 +213,13 @@ export async function actionAsk(clientId: string, slug: string, formData: FormDa
   if (!question) return;
   await supabaseAdmin().from("asks").insert({ client_id: clientId, question });
   await logEvent(clientId, "asked", { question });
-  revalidatePath(`/hq/${slug}`);
+  revalidatePath(`/hq/${slug}`, "layout");
 }
 
 export async function actionDeleteAsk(askId: string, slug: string) {
   await guard();
   await supabaseAdmin().from("asks").delete().eq("id", askId);
-  revalidatePath(`/hq/${slug}`);
+  revalidatePath(`/hq/${slug}`, "layout");
 }
 
 /* ---------- reset ---------- */
@@ -243,7 +243,7 @@ export async function actionResetClient(clientId: string, slug: string) {
   await sb.from("rounds").update({ status: "draft" }).eq("client_id", clientId).eq("kind", "shoot");
   await sb.from("rounds").update({ status: "live", sent_at: new Date().toISOString() }).eq("client_id", clientId).eq("kind", "questionnaire");
   await sb.from("clients").update({ shoot_days: [], status: "handshake" }).eq("id", clientId);
-  revalidatePath(`/hq/${slug}`); revalidatePath("/hq");
+  revalidatePath(`/hq/${slug}`, "layout"); revalidatePath("/hq");
 }
 
 /* ---------- briefs, transcripts ---------- */
@@ -251,18 +251,18 @@ export async function actionResetClient(clientId: string, slug: string) {
 export async function actionGenerateBrief(clientId: string, slug: string) {
   await guard();
   await generateBrief(clientId);
-  revalidatePath(`/hq/${slug}`);
+  revalidatePath(`/hq/${slug}`, "layout");
 }
 
 export async function actionRetranscribe(recordingId: string, slug: string) {
   await guard();
   try { await transcribeRecording(recordingId); } catch { /* status is on the row */ }
-  revalidatePath(`/hq/${slug}`);
+  revalidatePath(`/hq/${slug}`, "layout");
 }
 
 export async function actionSaveBriefEdit(briefId: string, slug: string, formData: FormData) {
   await guard();
   const edited = String(formData.get("edited") || "");
   await supabaseAdmin().from("briefs").update({ edited_content: edited }).eq("id", briefId);
-  revalidatePath(`/hq/${slug}`);
+  revalidatePath(`/hq/${slug}`, "layout");
 }

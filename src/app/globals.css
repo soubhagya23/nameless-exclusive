@@ -109,3 +109,10 @@ audio { width: 100%; max-width: 100%; display: block; }
 .bslot { height: 44px; border: 1px dashed var(--ink); background: #fff; }
 .badd { background: transparent; border: 1px dashed var(--line); color: var(--dim); padding: 10px; font-family: var(--fl); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; text-align: left; } .badd:hover { border-color: var(--ink); color: var(--ink); }
 .bmodal { position: fixed; inset: 0; background: rgba(17,17,17,0.5); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
+
+/* client overview: one card per stage */
+.stages-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.stagecard { background: #fff; border: 1px solid var(--line); padding: 18px 20px; display: grid; gap: 8px; align-content: start; text-decoration: none; color: var(--text); min-height: 170px; }
+.stagecard:hover { border-color: var(--ink); } .stagecard h3 { color: var(--ink); margin: 0; font-size: 20px; } .stagecard p { margin: 0; font-size: 14px; }
+.stagecard .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.stagecard.dim { opacity: 0.6; } .stagecard.add { border-style: dashed; background: transparent; }
