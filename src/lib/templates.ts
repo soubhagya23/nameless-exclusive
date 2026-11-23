@@ -29,7 +29,7 @@ export const defaultQuestionnaire: RoundConfig = {
   ],
   prompts: [],
   shootOptions: [],
-  photoAsks: ["A photo of your desk or the office"],
+  photoAsks: [],
 };
 
 export const defaultShoot1: RoundConfig = {
@@ -47,7 +47,7 @@ export const defaultShoot1: RoundConfig = {
   ],
   prompts: [],
   shootOptions: [],
-  photoAsks: ["A photo of a listing we could film at"],
+  photoAsks: [],
   references: [],
 };
 
@@ -70,7 +70,7 @@ export const jatinQuestionnaire: RoundConfig = {
   ],
   prompts: [],
   shootOptions: [],
-  photoAsks: ["A photo of your desk at the Truganina office"],
+  photoAsks: [],
 };
 
 export const jatinShoot1: RoundConfig = {
@@ -88,7 +88,7 @@ export const jatinShoot1: RoundConfig = {
   ],
   prompts: [],
   shootOptions: ["Sat 15 Nov", "Tue 18 Nov", "Sat 22 Nov"],
-  photoAsks: ["A photo of a listing we could film at"],
+  photoAsks: [],
   references: [],
 };
 
@@ -118,7 +118,7 @@ export const akshayQuestionnaire: RoundConfig = {
   ],
   prompts: [],
   shootOptions: [],
-  photoAsks: ["Your desk, or wherever you actually work now"],
+  photoAsks: [],
 };
 
 export const akshayShoot1: RoundConfig = {
@@ -135,7 +135,7 @@ export const akshayShoot1: RoundConfig = {
   ],
   prompts: [],
   shootOptions: ["Sat 15 Nov", "Tue 18 Nov", "Sat 22 Nov"],
-  photoAsks: ["A photo from inside one of the stores, any one"],
+  photoAsks: [],
   references: [],
 };
 
@@ -155,7 +155,7 @@ export const followUpRound: RoundConfig = {
   ],
   prompts: [],
   shootOptions: [],
-  photoAsks: ["A photo of the listing for this shoot"],
+  photoAsks: [],
   references: [],
 };
 

@@ -249,6 +249,7 @@ function OneAtATime({ roundId, cards, initial, rec, post, say, onCount, shootNum
 /* ---------- the page ---------- */
 
 export default function Handshake({ client, questionnaire, shoot, shoots, initialAsks, initialAnswers, initialRecordings, initialPhotos, supabaseUrl, supabaseAnon }: Props) {
+  void initialPhotos;
   const who = client.akshayName;
   const api = (path: string) => `/api/c/${client.slug}/${path}`;
   const q = questionnaire && questionnaire.live ? questionnaire : null;
@@ -257,16 +258,10 @@ export default function Handshake({ client, questionnaire, shoot, shoots, initia
   const sCards = s ? s.config.cards : [];
   const references = s ? s.config.references || [] : [];
   const shootOptions = s ? s.config.shootOptions : [];
-  // Photo asks from whichever rounds are live, each tied to its round.
-  const photoAsks: { prompt: string; roundId: string }[] = [
-    ...(q ? (q.config.photoAsks || []).map((p) => ({ prompt: p, roundId: q.id })) : []),
-    ...(s ? (s.config.photoAsks || []).map((p) => ({ prompt: p, roundId: s.id })) : []),
-  ];
 
   const [qAnswered, setQAnswered] = useState(() => qCards.filter((c) => initialAnswers.some((a) => a.round_id === q?.id && a.card_id === c.id)).length);
   const [sAnswered, setSAnswered] = useState(() => sCards.filter((c) => initialAnswers.some((a) => a.round_id === s?.id && a.card_id === c.id)).length);
   const [recs, setRecs] = useState<Rec[]>(initialRecordings);
-  const [photos, setPhotos] = useState<PhotoItem[]>(initialPhotos);
   const [recording, setRecording] = useState<"" | RecKind>("");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [recSecs, setRecSecs] = useState(0);
@@ -278,7 +273,6 @@ export default function Handshake({ client, questionnaire, shoot, shoots, initia
   const [askRec, setAskRec] = useState<Record<string, { id: string; url: string }>>({});
   const [planStatus, setPlanStatus] = useState(shoot?.plan_status || "none");
   const [ticked, setTicked] = useState<string[]>(shoot?.checklist_done || []);
-  const [photoBusy, setPhotoBusy] = useState<string | null>(null);
 
   const recorder = useRef<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
@@ -291,9 +285,9 @@ export default function Handshake({ client, questionnaire, shoot, shoots, initia
   const openAsks = asks.filter((a) => a.status === "open");
   const plan = shoot?.plan || {};
   const checklist = plan.checklist || [];
-  const photosNeeded = photoAsks.filter((p) => !photos.some((x) => x.prompt === p.prompt));
-  const totalCards = qCards.length + sCards.length;
-  const totalAnswered = qAnswered + sAnswered;
+  const onboarding = !!q && !(qCards.length > 0 && qAnswered >= qCards.length);
+  const totalCards = onboarding ? qCards.length : sCards.length;
+  const totalAnswered = onboarding ? qAnswered : sAnswered;
 
   function say(msg: string) { setToast(msg); if (toastTimer.current) window.clearTimeout(toastTimer.current); toastTimer.current = window.setTimeout(() => setToast(""), 1800); }
   async function post(path: string, body: unknown, roundId: string) {
@@ -305,14 +299,14 @@ export default function Handshake({ client, questionnaire, shoot, shoots, initia
 
   function job(): { line: string; href?: string; cta?: string } {
     if (openAsks.length) return { line: openAsks.length === 1 ? `${who} has one question for you.` : `${who} has ${openAsks.length} questions for you.`, href: "#asks", cta: "See it" };
+    if (onboarding) return { line: qAnswered > 0 ? `Finish the cards. ${qCards.length - qAnswered} left.` : `Tap through ${qCards.length} cards. About three minutes.`, href: "#cards", cta: qAnswered > 0 ? "Continue" : "Start" };
     if (shoot && planStatus === "sent") return { line: `Shoot ${shoot.number} is planned${plan.date ? ` for ${plan.date}` : ""}. One tap if it works.`, href: "#plan", cta: "See the plan" };
     if (shoot && planStatus === "accepted" && checklist.length && ticked.length < checklist.length) return { line: `Shoot ${shoot.number}${plan.date ? ` is ${plan.date}` : ""}. Tick the list the day before.`, href: "#plan", cta: "Open the list" };
     if (shoot && planStatus === "accepted") return { line: `Shoot ${shoot.number}${plan.date ? `: ${plan.date}` : ""}. We will message you the morning before.` };
-    if (q && !qDone) return { line: qAnswered > 0 ? `Finish the cards. ${qCards.length - qAnswered} left.` : `Tap through ${qCards.length} cards. About three minutes.`, href: "#cards", cta: qAnswered > 0 ? "Continue" : "Start" };
     if (s && !sDone) return { line: sAnswered > 0 ? `Finish the questions for shoot ${s.number}. ${sCards.length - sAnswered} left.` : `Read what we are going for, then ${sCards.length} questions. Type or talk.`, href: sAnswered > 0 ? "#questions" : "#going", cta: sAnswered > 0 ? "Continue" : "Start" };
-    if ((q || s) && photosNeeded.length) return { line: photosNeeded.length === 1 ? "One photo and you are done." : `${photosNeeded.length} photos and you are done.`, href: "#photos", cta: "Send photos" };
     if (s && shootOptions.length && !days.length) return { line: "Pick the days that could work for the shoot.", href: "#days", cta: "Pick days" };
-    if (q || s) return { line: "Done. Nothing else needed this week." };
+    if (s) return { line: `Done for shoot ${s.number}. We plan the day from here.` };
+    if (q) return { line: "The cards are in. We are working on our side; this page changes when the first shoot is ready." };
     return { line: "Nothing to do right now. We are working on our side." };
   }
   const j = job();
@@ -385,31 +379,13 @@ export default function Handshake({ client, questionnaire, shoot, shoots, initia
   const rec: Recorder = { recording, activeId, recSecs, uploading, start: startRecording, stop: stopRecording };
 
 
-  async function sendPhoto(prompt: string, roundId: string, file: File) {
-    setPhotoBusy(prompt);
-    try {
-      const mime = file.type || "image/jpeg";
-      const { photoId, path, token } = (await post("photo", { step: "start", prompt, mime }, roundId)) as { photoId: string; path: string; token: string };
-      const sb = createClient(supabaseUrl, supabaseAnon);
-      const { error } = await sb.storage.from("photos").uploadToSignedUrl(path, token, file, { contentType: mime });
-      if (error) throw error;
-      await post("photo", { step: "done", photoId }, roundId);
-      setPhotos((p) => [{ id: photoId, prompt, round_id: roundId }, ...p]);
-      say("Got it.");
-    } catch (e) { console.error(e); say("Could not send the photo. Try again."); } finally { setPhotoBusy(null); }
-  }
-  async function removePhoto(id: string, roundId: string) {
-    try { await post("photo", { step: "remove", photoId: id }, roundId); setPhotos((p) => p.filter((x) => x.id !== id)); } catch { say("Could not remove it."); }
-  }
-
   useEffect(() => () => { if (timer.current) window.clearInterval(timer.current); }, []);
 
   const wa = (text: string) => `https://wa.me/${client.wa_number || ""}?text=${encodeURIComponent(text)}`;
   const stageWord = (x: ShootStage) => (x === "done" ? "done" : x === "confirmed" ? "locked" : x === "planned" ? "planned" : x === "answered" ? "answered" : x === "live" ? "now" : "soon");
   let section = 0;
   const num = () => `( 0${++section} )`;
-  const onboarding = !!q && !qDone;
-  const lede = onboarding ? q!.config.lede : s ? s.config.lede : q ? q.config.lede : "";
+  const lede = onboarding ? q!.config.lede : s ? s.config.lede : "";
 
   return (
     <div>
@@ -419,15 +395,15 @@ export default function Handshake({ client, questionnaire, shoot, shoots, initia
             <span className="redact" aria-label="nameless" />
             {totalCards ? <span className="count label"><span>With us</span><b>{totalAnswered} / {totalCards}</b><span className="bar"><i style={{ width: `${Math.round((100 * totalAnswered) / totalCards)}%` }} /></span></span> : <span className="label" style={{ color: "var(--dim)" }}>Exclusive / {client.name}</span>}
           </div>
-          {shoots.length > 1 ? (
+          {!onboarding && shoots.length > 1 ? (
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 16 }}>
               {shoots.map((x) => <span key={x.id} className="pill" style={{ background: x.id === shoot?.id ? "#fff" : "transparent", color: x.id === shoot?.id ? "var(--ink)" : "var(--dim)", borderColor: x.id === shoot?.id ? "#fff" : "var(--dline)" }}>Shoot {x.number} · {stageWord(x.stage)}{x.date ? ` · ${x.date}` : ""}</span>)}
             </div>
           ) : null}
           <div className="top">
             <div>
-              <span className="label" style={{ color: "var(--dim)" }}>( {onboarding || !shoot ? "The handshake" : `Shoot ${shoot.number}`} )</span>
-              <h1 style={{ marginTop: 14 }}>{client.first_name}.<br />{onboarding || !shoot ? <>We did the <span className="acc">homework.</span></> : <>Shoot <span className="acc">{shoot.number}.</span></>}</h1>
+              <span className="label" style={{ color: "var(--dim)" }}>( {onboarding ? "The handshake" : s ? `Shoot ${s.number}` : "Between shoots"} )</span>
+              <h1 style={{ marginTop: 14 }}>{client.first_name}.<br />{onboarding ? <>We did the <span className="acc">homework.</span></> : s ? <>Shoot <span className="acc">{s.number}.</span></> : <>Nothing to do <span className="acc">right now.</span></>}</h1>
               {lede ? <p className="lede">{lede}</p> : null}
             </div>
             {client.portrait_url ? <figure><img src={client.portrait_url} alt={client.name} width={560} height={560} /></figure> : <div />}
@@ -440,7 +416,7 @@ export default function Handshake({ client, questionnaire, shoot, shoots, initia
         </div>
       </header>
 
-      {shoot && planStatus !== "none" ? (
+      {!onboarding && shoot && planStatus !== "none" ? (
         <section className="band" id="plan">
           <div className="in">
             <div className="head"><span className="label">{num()}</span><div><h2>Shoot {shoot.number}, <span className="acc">planned.</span></h2><p>{planStatus === "accepted" ? "Locked in. This is the day." : "Read it once. If it works, one tap."}</p></div></div>
@@ -479,19 +455,17 @@ export default function Handshake({ client, questionnaire, shoot, shoots, initia
         </section>
       ) : null}
 
-      {q && qCards.length ? (
+      {onboarding && qCards.length ? (
         <section className="band grey" id="cards">
           <div className="in">
             <div className="head"><span className="label">{num()}</span><div><h2>Is this <span className="acc">you?</span></h2><p>{q.config.intro} Two taps per card. Add your voice if you want to.</p></div></div>
             <CardDeck roundId={q.id} cards={qCards} initial={initialAnswers.filter((a) => a.round_id === q.id)} rec={rec} post={post} say={say} onCount={setQAnswered}
-              doneLine={s && sCards.length && !sDone ? `Next, shoot ${s.number}.` : photosNeeded.length ? "One more thing: a photo or two." : "That is the homework done."}
-              doneHref={s && sCards.length && !sDone ? "#going" : photosNeeded.length ? "#photos" : undefined}
-              doneCta={s && sCards.length && !sDone ? "Go to the shoot" : "Send photos"} />
+              doneLine="That is the homework done. We take it from here." />
           </div>
         </section>
       ) : null}
 
-      {s && (references.length || s.config.intro) ? (
+      {!onboarding && s && (references.length || s.config.intro) ? (
         <section className="band" id="going">
           <div className="in">
             <div className="head"><span className="label">{num()}</span><div><h2>Shoot {s.number}. What we are <span className="acc">going for.</span></h2>{s.config.intro ? <p style={{ fontSize: "clamp(17px, 2.4vw, 20px)" }}>{s.config.intro}</p> : null}</div></div>
@@ -515,7 +489,7 @@ export default function Handshake({ client, questionnaire, shoot, shoots, initia
         </section>
       ) : null}
 
-      {s && sCards.length ? (
+      {!onboarding && s && sCards.length ? (
         <section className="band grey" id="questions">
           <div className="in">
             <div className="head"><span className="label">{num()}</span><div><h2>A few <span className="acc">questions.</span></h2><p>One at a time. Type it or record it, press Send, the next one comes up. Once it is sent it is with us, so say it how you would say it.</p></div></div>
@@ -524,37 +498,11 @@ export default function Handshake({ client, questionnaire, shoot, shoots, initia
         </section>
       ) : null}
 
-      {s && shootOptions.length ? (
+      {!onboarding && s && shootOptions.length ? (
         <section className="band dark" id="days">
           <div className="in">
             <div className="head"><span className="label">{num()}</span><div><h2>Which <span className="acc">day?</span></h2><p style={{ color: "var(--dim)" }}>Tap all the days that could work for shoot {s.number}. We lock one and send you the plan.</p></div></div>
             <div className="chips">{shootOptions.map((d) => <button key={d} className="chip" type="button" aria-pressed={days.includes(d)} onClick={() => toggleDay(d)}>{d}</button>)}</div>
-          </div>
-        </section>
-      ) : null}
-
-      {photoAsks.length ? (
-        <section className="band" id="photos">
-          <div className="in">
-            <div className="head"><span className="label">{num()}</span><div><h2>Show us, <span className="acc">don&apos;t tell us.</span></h2><p>Any photo from your phone. Rubbish quality is fine. We only need to see it.</p></div></div>
-            <div style={{ display: "grid", gap: 12 }}>
-              {photoAsks.map((p) => {
-                const mine = photos.filter((x) => x.prompt === p.prompt);
-                return (
-                  <div key={p.roundId + p.prompt} className="card" style={{ borderColor: mine.length ? "var(--line)" : "var(--ink)" }}>
-                    <div className="meta"><span className="label">{mine.length ? `Got ${mine.length}` : "Needed"}</span></div>
-                    <p className="claim" style={{ fontSize: "clamp(22px, 3.6vw, 30px)" }}>{p.prompt}</p>
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginTop: 18 }}>
-                      <label className="btn" style={{ cursor: "pointer" }}>
-                        {photoBusy === p.prompt ? "Sending" : mine.length ? "Send another" : "Take or choose a photo"}
-                        <input type="file" accept="image/*" style={{ display: "none" }} disabled={photoBusy !== null} onChange={(e) => { const f = e.target.files?.[0]; if (f) sendPhoto(p.prompt, p.roundId, f); e.currentTarget.value = ""; }} />
-                      </label>
-                      {mine.length ? <button type="button" className="btn link" onClick={() => removePhoto(mine[0].id, mine[0].round_id || p.roundId)}>Remove the last one</button> : null}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
           </div>
         </section>
       ) : null}
@@ -596,7 +544,7 @@ export default function Handshake({ client, questionnaire, shoot, shoots, initia
         </section>
       ) : null}
 
-      {q ? (
+      {onboarding ? (
         <section className="band" id="after">
           <div className="in">
             <details>

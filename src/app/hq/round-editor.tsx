@@ -14,7 +14,6 @@ export default function RoundEditor({ initial, kind = "shoot" }: { initial: Roun
   const refs = cfg.references || [];
   function setRef(i: number, patch: Partial<Reference>) { const references = [...refs]; references[i] = { ...references[i], ...patch }; set({ references }); }
   const [newDay, setNewDay] = useState("");
-  const [newPhoto, setNewPhoto] = useState("");
 
   const set = (patch: Partial<RoundConfig>) => setCfg((c) => ({ ...c, ...patch }));
   const move = <T,>(arr: T[], i: number, dir: -1 | 1) => { const j = i + dir; if (j < 0 || j >= arr.length) return arr; const a = [...arr]; [a[i], a[j]] = [a[j], a[i]]; return a; };
@@ -89,23 +88,6 @@ export default function RoundEditor({ initial, kind = "shoot" }: { initial: Roun
         </div>
       </div>
       ) : null}
-
-      <div className="panel">
-        <h3>Photos to ask for</h3>
-        <p style={{ fontSize: 14, marginBottom: 12 }}>Each one becomes a card with a camera button. {isQ ? '"A photo of your desk at the office".' : '"A photo of the listing we will film at".'} Leave empty to skip.</p>
-        <div style={{ display: "grid", gap: 8, marginBottom: 10 }}>
-          {cfg.photoAsks.map((d, i) => (
-            <div key={i} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <input value={d} onChange={(e) => { const photoAsks = [...cfg.photoAsks]; photoAsks[i] = e.target.value; set({ photoAsks }); }} style={{ flex: 1, font: "inherit", fontSize: 15, padding: "10px 12px", border: "1px solid var(--line)" }} />
-              <button className="btn small ghost" type="button" onClick={() => set({ photoAsks: cfg.photoAsks.filter((_, k) => k !== i) })}>Remove</button>
-            </div>
-          ))}
-        </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <input value={newPhoto} onChange={(e) => setNewPhoto(e.target.value)} placeholder="A photo of ..." style={{ font: "inherit", fontSize: 15, padding: "10px 12px", border: "1px solid var(--line)", minWidth: 260 }} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (newPhoto.trim()) { set({ photoAsks: [...cfg.photoAsks, newPhoto.trim()] }); setNewPhoto(""); } } }} />
-          <button className="btn small ghost" type="button" onClick={() => { if (newPhoto.trim()) { set({ photoAsks: [...cfg.photoAsks, newPhoto.trim()] }); setNewPhoto(""); } }}>Add</button>
-        </div>
-      </div>
 
       {!isQ ? (
       <div className="panel">

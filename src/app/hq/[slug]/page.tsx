@@ -185,7 +185,7 @@ export default async function ClientDetail({ params, searchParams }: { params: P
               </div>
             ) : null}
 
-            {shoot.config.photoAsks.length || shootPhotos.length ? (
+            {shootPhotos.length ? (
               <div className="panel">
                 <h3>Photos · {shootPhotos.length}</h3>
                 {!shootPhotos.length ? <p>Asked for: {shoot.config.photoAsks.join(" · ")}. Nothing in yet.</p> : (

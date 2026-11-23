@@ -28,7 +28,7 @@ function cleanConfig(raw: unknown, kind: RoundKind = "shoot"): RoundConfig {
   const ids = new Set<string>();
   for (const card of cards) { if (ids.has(card.id)) throw new Error(`Two cards share the id "${card.id}"`); ids.add(card.id); }
   if (kind === "questionnaire" && !cards.length) throw new Error("The questionnaire needs at least one card");
-  if (kind === "shoot" && !cards.length && !prompts.length && !photoAsks.length && !shootOptions.length && !references.length) throw new Error("A shoot needs at least one thing for him: a question, a drive prompt, a photo ask, a day option or a reference");
+  if (kind === "shoot" && !cards.length && !prompts.length && !shootOptions.length && !references.length) throw new Error("A shoot needs at least one thing for him: a question, a day option or a reference");
   return { lede: String(c.lede || "").trim(), intro: String(c.intro || "").trim(), secondsPerPrompt: Math.max(20, Math.min(300, Number(c.secondsPerPrompt) || 90)), cards, prompts, shootOptions, photoAsks, references };
 }
 

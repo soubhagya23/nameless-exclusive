@@ -63,9 +63,9 @@ Nothing else changes. The main site stays on Hostinger exactly as it is. DNS usu
 The flow is: client onboarded → questionnaire → brief → shoots.
 
 - **Onboard:** HQ → New client → check the questionnaire cards for the person → Create. Nothing reaches him yet. Shoot 1 is drafted alongside, as a draft.
-- **Send the questionnaire:** on his HQ page, the Questionnaire tab → **Send to him** → **Copy the WhatsApp** and paste it. He taps the cards (This is me / Not quite, voice note if he wants) and sends the photo you asked for. It lands in HQ as it happens.
+- **Send the questionnaire:** on his HQ page, the Questionnaire tab → **Send to him** → **Copy the WhatsApp** and paste it. He taps the cards (This is me / Not quite, voice note if he wants). That is all he sees until the cards are in. It lands in HQ as it happens.
 - **Brief:** once the cards are in, **Write the first draft**. Edit it. That is the client brief; every later draft builds on it.
-- **Shoot 1:** the Shoot 1 tab → **Edit what he sees**: what we are trying to do on this shoot (he reads it first), the content references (reel links, images, a folder), the questions for this shoot, the photo asks, the day options → **Send to him**. His page shows "What we are going for", then the questions one at a time (he types or records, presses Send, the next one appears, no going back), then the days and photos.
+- **Shoot 1:** the Shoot 1 tab → **Edit what he sees**: what we are trying to do on this shoot (he reads it first), the content references (reel links, images, a folder), the questions for this shoot, the day options → **Send to him**. Once his cards are in, his page shows only the shoot: "What we are going for", then the questions one at a time (he types or records, presses Send, the next one appears, no going back), then the days.
 - **Plan it:** fill the Shoot plan form → **Send plan to his page**. He taps Works for me and ticks the day-before list.
 - **Shoot 2 and 3:** **New shoot** → Draft with AI from what we know (first question is his day in the week of the shoot) → add references → Send. Same link, the page changes.
 - Need more from him at any point: **Ask him something**. It appears under "From Akshay".

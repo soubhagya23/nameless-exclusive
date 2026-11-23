@@ -45,7 +45,7 @@ Return JSON with exactly this shape:
   "intro": "two or three sentences, what we are trying to do on this shoot, in plain words he reads first",
   "cards": [ { "id": "kebab-id", "kind": "question", "claim": "the question, max 18 words", "why": "small nudge under it, max 16 words" } ],   // 4 to 8 questions he answers one at a time by typing or voice: his day in the week of the shoot first, then what we plan to film, who is on camera, where, what changed, what he wants more or less of
   "prompts": [],
-  "photoAsks": [ "A photo of ..." ]   // 1 to 3 things we need to see before the shoot
+  "photoAsks": []
 }`;
 
   const key = process.env.ANTHROPIC_API_KEY;
@@ -77,7 +77,7 @@ Return JSON with exactly this shape:
     intro: String(parsed.intro || base.intro),
     cards,
     prompts,
-    photoAsks: (Array.isArray(parsed.photoAsks) ? parsed.photoAsks : base.photoAsks).map(String).filter(Boolean),
+    photoAsks: [],
     shootOptions: [],
     references: [],
   };
