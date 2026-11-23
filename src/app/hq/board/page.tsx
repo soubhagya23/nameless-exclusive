@@ -1,15 +1,14 @@
-import { listClients, listTasks, teamNames } from "@/lib/db";
+import { listClients, listTasks, teamNames, listTeam } from "@/lib/db";
 import { hqUser } from "@/lib/supabase-server";
 import Board from "./board";
 
 export const dynamic = "force-dynamic";
 
 export default async function BoardPage() {
-  const [tasks, clients, user] = await Promise.all([listTasks(), listClients(), hqUser()]);
+  const [tasks, clients, user, team, members] = await Promise.all([listTasks(), listClients(), hqUser(), teamNames(), listTeam().catch(() => [])]);
   const me = (user?.email || "").split("@")[0];
-  const team = teamNames();
   // Guess who I am on the board from my email, so "Mine" works without a settings page.
-  const myName = team.find((n) => me.toLowerCase().includes(n.toLowerCase())) || "";
+  const myName = members.find((m) => m.email.toLowerCase() === (user?.email || "").toLowerCase())?.name || team.find((n) => me.toLowerCase().includes(n.toLowerCase())) || "";
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, marginBottom: 18, flexWrap: "wrap" }}>

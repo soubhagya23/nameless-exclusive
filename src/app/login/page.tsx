@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 async function sendLink(formData: FormData) {
   "use server";
   const email = String(formData.get("email") || "").trim().toLowerCase();
-  const allowed = allowedEmails();
+  const allowed = await allowedEmails();
   if (!email || (allowed.length && !allowed.includes(email))) redirect("/login?e=notallowed");
   const h = await headers();
   const host = h.get("x-forwarded-host") || h.get("host") || "";

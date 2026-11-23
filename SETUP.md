@@ -5,7 +5,7 @@ Everything below is a one-time job. About twenty minutes. Do it in order.
 ## 1. Supabase (database, storage, HQ login)
 
 1. supabase.com → New project. Name `nameless`, region Sydney. Save the database password somewhere safe (you will not need it day to day).
-2. When it is ready: **SQL Editor → New query**. Open `supabase/schema.sql` from this repo, paste everything, **Run**. Then do the same with every file in `supabase/migrations/`, in number order (002, 003, 004, 007, 008, 009). Together they create the tables, the rounds model and the private `recordings` bucket.
+2. When it is ready: **SQL Editor → New query**. Open `supabase/schema.sql` from this repo, paste everything, **Run**. Then do the same with every file in `supabase/migrations/`, in number order (002, 003, 004, 007, 008, 009, 010). Together they create the tables, the rounds model and the private `recordings` bucket.
 3. **Authentication → URL Configuration**:
    - Site URL: `https://hq.thenameless.studio`
    - Redirect URLs, add both: `https://hq.thenameless.studio/auth/callback` and `https://*.vercel.app/auth/callback`
@@ -73,6 +73,7 @@ The flow is: client onboarded → questionnaire → brief → shoots.
 - Starting over after a test: **Reset everything** on his HQ page (questionnaire back to live, shoots back to draft, all answers gone).
 - **Board** (top nav): the team kanban. To do, In progress, Review, Done. Drag cards, click one to set who, which client, when. Everyone with an HQ login sees the same board.
 - **Links** (top nav): every Drive folder and shared link, grouped by client. Each client's HQ page shows theirs with an Add a link button.
+- **Team** (top nav): add a person's email and first name and they can sign in with a magic link. No Vercel change needed. Their name shows on the board.
 
 ## Local development
 

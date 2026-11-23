@@ -20,11 +20,16 @@ export async function supabaseServer() {
   });
 }
 
-export function allowedEmails(): string[] {
-  return (process.env.HQ_ALLOWED_EMAILS || "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
+/** Who can sign in: the HQ_ALLOWED_EMAILS env list plus everyone on the Team page (the `team` table). */
+export async function allowedEmails(): Promise<string[]> {
+  const env = (process.env.HQ_ALLOWED_EMAILS || "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
+  try {
+    const { supabaseAdmin } = await import("./supabase-admin");
+    const { data } = await supabaseAdmin().from("team").select("email");
+    return Array.from(new Set([...env, ...(data || []).map((r) => String(r.email).toLowerCase())]));
+  } catch {
+    return env;
+  }
 }
 
 /** Returns the signed-in HQ user, or null when not signed in or not on the allow list. */
@@ -33,7 +38,7 @@ export async function hqUser() {
   const { data } = await supabase.auth.getUser();
   const email = data.user?.email?.toLowerCase();
   if (!email) return null;
-  const allowed = allowedEmails();
+  const allowed = await allowedEmails();
   if (allowed.length && !allowed.includes(email)) return null;
   return data.user;
 }

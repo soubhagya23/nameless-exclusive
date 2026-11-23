@@ -13,6 +13,7 @@ export default async function HQLayout({ children }: { children: React.ReactNode
           <Link href="/hq">Clients</Link>
           <Link href="/hq/board">Board</Link>
           <Link href="/hq/links">Links</Link>
+          <Link href="/hq/team">Team</Link>
           <Link href="/hq/new">New client</Link>
           <span style={{ color: "var(--dim)" }}>{user.email}</span>
           <form action="/auth/signout" method="post"><button className="btn ghost small" style={{ color: "#fff", borderColor: "#fff" }} type="submit">Sign out</button></form>

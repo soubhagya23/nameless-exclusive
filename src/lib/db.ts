@@ -136,7 +136,16 @@ export async function listLinks(clientId?: string): Promise<AssetLink[]> {
   return (data || []) as AssetLink[];
 }
 
-/** The team names on the board. HQ_TEAM="Soubh,Akshay,Pranshee" in Vercel, else this default. */
-export function teamNames(): string[] {
+export type TeamMember = { id: string; email: string; name: string; created_by: string; created_at: string };
+export async function listTeam(): Promise<TeamMember[]> {
+  const { data } = await supabaseAdmin().from("team").select("*").order("created_at", { ascending: true });
+  return (data || []) as TeamMember[];
+}
+
+/** The names on the board: everyone on the Team page, else HQ_TEAM in Vercel, else this default. */
+export async function teamNames(): Promise<string[]> {
+  const team = await listTeam().catch(() => [] as TeamMember[]);
+  const names = team.map((t) => t.name).filter(Boolean);
+  if (names.length) return Array.from(new Set(names));
   return (process.env.HQ_TEAM || "Soubh,Akshay,Pranshee").split(",").map((s) => s.trim()).filter(Boolean);
 }
